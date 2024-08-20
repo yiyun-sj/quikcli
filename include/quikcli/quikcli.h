@@ -29,7 +29,10 @@
 #define QC_QUIKCLI_H_
 
 #include <cstring>
+#include <iomanip>
+#include <ios>
 #include <iostream>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -45,8 +48,13 @@ public:
   /* Constructors & Destructors - No Copy Default Move */
   QuikCli(std::string name, std::string version)
       : name_{name}, version_{version} {
-    add_flag(DefaultFlagNames::version, "print version information then exit",
-             [&](std::vector<std::string> &) { version_flag_func(*this); })
+    add_flag(DefaultFlagNames::version, DefaultFlagDescription::version,
+             [&](std::vector<std::string> &) { default_version_func(*this); })
+        .set_alias(DefaultFlagAliases::version)
+        .set_param_count(0);
+    add_flag(DefaultFlagNames::help, DefaultFlagDescription::help,
+             [&](std::vector<std::string> &) { default_help_func(*this); })
+        .set_alias(DefaultFlagAliases::help)
         .set_param_count(0);
   }
 
@@ -66,13 +74,13 @@ public:
 
   /* Configurations */
   Flag &add_flag(std::string name, std::string description) {
-    check_no_dup_flag(name);
+    check_dup_flag(name);
     flags_.emplace(name, Flag{name, description});
     return flags_.at(name);
   }
   Flag &add_flag(std::string name, std::string description,
                  callback_t callback) {
-    check_no_dup_flag(name);
+    check_dup_flag(name);
     flags_.emplace(name, Flag{name, description, std::move(callback)});
     return flags_.at(name);
   }
@@ -80,13 +88,19 @@ public:
     requires(has_istream_operator<ParamsT> && ...)
   Flag &add_flag(std::string name, std::string description,
                  ParamsT &...params) {
-    check_no_dup_flag(name);
+    check_dup_flag(name);
     flags_.emplace(name, Flag{name, description, params...});
     return flags_.at(name);
   }
 
   /* Run-Time Functions */
   void parse_flags(int argc, char *argv[]) {
+    std::unordered_map<char, std::string> aliases;
+    for (const auto &[_, flag] : flags_) {
+      if (flag.alias().has_value()) {
+        aliases.emplace(flag.alias().value(), flag.name());
+      }
+    }
     try {
       std::vector<std::string> params;
       std::vector<Flag *> set_flags;
@@ -104,11 +118,11 @@ public:
             next_flag = &flags_.at(flag_name);
           } else {
             // TODO: handle chained aliases (i.e. -abc)
-            if (argstr.length() != 2 || !flag_aliases_.contains(argstr[1])) {
+            if (argstr.length() != 2 || !aliases.contains(argstr[1])) {
               throw Exception(ExceptionType::PARSER,
                               argstr + " is not a valid flag.");
             }
-            next_flag = &flags_.at(flag_aliases_.at(argstr[1]));
+            next_flag = &flags_.at(aliases.at(argstr[1]));
           }
           if (next_flag->is_set()) {
             throw Exception(ExceptionType::PARSER,
@@ -148,7 +162,7 @@ public:
     std::string line;
     std::cout << name_ << "> ";
     while (std::cin >> line) {
-      std::cout << line << '\n';
+      std::cout << line << std::endl;
       if (!is_active_) {
         return;
       }
@@ -159,16 +173,38 @@ public:
 
 private:
   /* Exception Handling */
-  void cleanup(Exception exception) { std::cerr << exception.what() << '\n'; }
+  void cleanup(Exception exception) {
+    std::cerr << exception.what() << std::endl;
+  }
 
   /* Default Flags Callbacks */
-  static void version_flag_func(QuikCli &cli) {
-    std::cout << cli.name() << " version " << cli.version() << '\n';
+  static void default_version_func(QuikCli &cli) {
+    std::cout << cli.name() << " version " << cli.version() << std::endl;
+    cli.exit();
+  }
+  static void default_help_func(QuikCli &cli) {
+    constexpr int col_width = 18;
+    constexpr char tab[] = "  ";
+    std::cout << cli.name() << " version " << cli.version() << std::endl;
+    std::cout << std::endl;
+    std::cout << "Options:" << std::endl;
+    for (const auto &[_, flag] : cli.flags_) {
+      std::string message = "--" + flag.name();
+      if (flag.alias().has_value()) {
+        message += ", -";
+        message += flag.alias().value();
+      }
+      std::cout << tab << std::left << std::setw(col_width) << message;
+      if (message.length() > col_width) {
+        std::cout << std::endl << std::setw(col_width) << "";
+      }
+      std::cout << tab << flag.description() << std::endl;
+    }
     cli.exit();
   }
 
   /* Helpers */
-  void check_no_dup_flag(std::string &name) {
+  void check_dup_flag(std::string &name) {
     if (flags_.contains(name)) {
       throw Exception(ExceptionType::CONFIGURATION,
                       "flag " + name + " has been repeated.");
@@ -179,8 +215,7 @@ private:
   bool is_active_ = true;
   std::string name_;
   std::string version_;
-  std::unordered_map<char, std::string> flag_aliases_;
-  std::unordered_map<std::string, Flag> flags_;
+  std::map<std::string, Flag> flags_;
 };
 
 } // namespace quikcli

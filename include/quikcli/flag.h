@@ -31,15 +31,17 @@
 #include <concepts>
 #include <cstdint>
 #include <functional>
-// #include <iostream>
+#include <optional>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "quikcli/constants.h"
 #include "quikcli/exception.h"
 
 namespace quikcli {
+class QuikCli;
 
 using callback_t = std::function<void(std::vector<std::string> &)>;
 
@@ -73,13 +75,30 @@ public:
   ~Flag() = default;
 
 public:
-  /* Getters & Setters */
-  bool is_set() { return is_set_; }
-  std::string description() { return description_; }
+  /* Getters */
+  bool is_set() const { return is_set_; }
+  std::string name() const { return name_; }
+  std::string description() const { return description_; }
+  std::optional<char> alias() const { return alias_; }
 
   /* Configuration */
-  void set_immediate_parse() { immediate_parse_ = true; }
-  void set_param_count(uint32_t param_count) { param_count_ = param_count; }
+  Flag &set_immediate_parse() {
+    immediate_parse_ = true;
+    return *this;
+  }
+  Flag &set_param_count(uint32_t param_count) {
+    param_count_ = param_count;
+    return *this;
+  }
+  Flag &set_alias(char alias) {
+    if (alias_set_.contains(alias)) {
+      throw Exception(ExceptionType::CONFIGURATION,
+                      "alias -" + std::to_string(alias) +
+                          " has already been assigned.");
+    }
+    alias_.emplace(alias);
+    return *this;
+  }
 
   /* Parsing */
   void set(std::vector<std::string> params) {
@@ -96,7 +115,6 @@ public:
       callback_(params_);
     }
   }
-
   void parse() {
     if (!immediate_parse_) {
       callback_(params_);
@@ -133,10 +151,12 @@ private:
   bool immediate_parse_ = false;
   uint32_t param_count_;
   std::string name_;
-  std::string alias_;
+  std::optional<char> alias_;
   std::string description_;
   callback_t callback_;
   std::vector<std::string> params_;
+
+  inline static std::unordered_set<char> alias_set_{};
 };
 
 } // namespace quikcli
