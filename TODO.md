@@ -1,20 +1,25 @@
 # QuikCli To-dos
 The following are a list of to-do's in the roadmap for QuikCli:
-- [ ] parser
+- [x] parser
   - [x] flag parser
     - [x] empty (boolean) flags
     - [x] variadic input flags
     - [x] function callback flags
-  - [ ] default supported flags:
-    - [ ] help (-h,--help)
+  - [x] default supported flags:
+    - [x] help (-h,--help)
     - [x] version (-V, --version)
 - [ ] interface
   - [ ] components
+    - [x] plain display
     - [ ] text input
     - [ ] selectable
-    - [ ] progress bar
-    - [ ] plain display
-  - [ ] color
+    - [x] loader (progress bar)
+  - [ ] Writer
+    - [ ] color
+    - [ ] name (i.e. `cli_name> ...`)
 - [ ] correctness
   - [ ] internal exit code
   - [ ] logs and errors (stderr)
+  - [ ] multiplatform support (Windows)
+- [ ] Feature Roadmap
+  - [ ] Subcommands

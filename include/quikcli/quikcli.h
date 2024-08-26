@@ -29,17 +29,21 @@
 #define QC_QUIKCLI_H_
 
 #include <cstring>
+#include <deque>
 #include <iomanip>
 #include <ios>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "constants.h"
 #include "exception.h"
+#include "quikcli/component.h"
 #include "quikcli/flag.h"
+#include "quikcli/writer.h"
 
 namespace quikcli {
 
@@ -79,7 +83,7 @@ public:
     return flags_.at(name);
   }
   Flag &add_flag(std::string name, std::string description,
-                 callback_t callback) {
+                 flag_callback_t callback) {
     check_dup_flag(name);
     flags_.emplace(name, Flag{name, description, std::move(callback)});
     return flags_.at(name);
@@ -155,18 +159,14 @@ public:
     }
   }
 
+  /* Runtime */
+  void push_component(std::unique_ptr<Component> component) {
+    components.emplace_back(std::move(component));
+  }
   void run() {
-    if (!is_active_) {
-      return;
-    }
-    std::string line;
-    std::cout << name_ << "> ";
-    while (std::cin >> line) {
-      std::cout << line << std::endl;
-      if (!is_active_) {
-        return;
-      }
-      std::cout << name_ << "> ";
+    while (!components.empty() && is_active_) {
+      components.front()->run(writer);
+      components.pop_front();
     }
   }
   void exit() { is_active_ = false; }
@@ -212,10 +212,16 @@ private:
   }
 
 private:
+  /* Cli Information */
   bool is_active_ = true;
   std::string name_;
   std::string version_;
   std::map<std::string, Flag> flags_;
+
+  /* Components to Render */
+  std::deque<std::unique_ptr<Component>> components;
+
+  Writer writer;
 };
 
 } // namespace quikcli

@@ -43,7 +43,7 @@
 namespace quikcli {
 class QuikCli;
 
-using callback_t = std::function<void(std::vector<std::string> &)>;
+using flag_callback_t = std::function<void(std::vector<std::string> &)>;
 
 template <class Param>
 concept has_istream_operator = requires(Param &param) {
@@ -56,7 +56,7 @@ public:
   Flag(std::string name, std::string description)
       : Flag(FlagParamSize::EMPTY, std::move(name), std::move(description),
              process_empty) {}
-  Flag(std::string name, std::string description, callback_t callback)
+  Flag(std::string name, std::string description, flag_callback_t callback)
       : Flag(FlagParamSize::VARIADIC, std::move(name), std::move(description),
              std::move(callback)) {}
   template <class... ParamsT>
@@ -123,7 +123,7 @@ public:
 
 private:
   Flag(uint32_t param_count, std::string name, std::string description,
-       callback_t callback)
+       flag_callback_t callback)
       : param_count_{param_count}, name_(name), description_{description},
         callback_{callback} {}
 
@@ -153,7 +153,7 @@ private:
   std::string name_;
   std::optional<char> alias_;
   std::string description_;
-  callback_t callback_;
+  flag_callback_t callback_;
   std::vector<std::string> params_;
 
   inline static std::unordered_set<char> alias_set_{};
