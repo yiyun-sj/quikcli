@@ -1,0 +1,13 @@
+function(add_quikcli_test name)
+    add_executable(${name} ${name}.cpp)
+    target_link_libraries(${name} PRIVATE quikcli doctest::doctest)
+    target_compile_options(${name} PRIVATE -Wall -Wextra)
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+add_quikcli_test(test_arg_type)
+add_quikcli_test(test_flag)
+add_quikcli_test(test_param)
+add_quikcli_test(test_parser)
+add_quikcli_test(test_command)
+add_quikcli_test(test_formatter)

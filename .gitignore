@@ -37,3 +37,6 @@
 
 # Build files
 build
+
+# Local files
+.local
