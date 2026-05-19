@@ -6,7 +6,7 @@ function(add_quikcli_test name)
 endfunction()
 
 add_quikcli_test(test_arg_type)
-# add_quikcli_test(test_flag)
+add_quikcli_test(test_flag)
 # add_quikcli_test(test_param)
 # add_quikcli_test(test_parser)
 # add_quikcli_test(test_command)

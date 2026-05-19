@@ -9,7 +9,17 @@
 
 namespace quikcli {
 
+namespace detail {
+
+template <typename T>
+concept Parseable = requires(std::string_view sv) {
+    { ArgType<T>::parse(sv) } -> std::same_as<T>;
+};
+
+} // namespace detail
+
 template <typename T> struct ArgType {
+    // TODO: remove this static assert after confirming that detail::Parseable<T> covers all cases
     static_assert(sizeof(T) == 0, "ArgType<T>: no specialization exists for type T. "
                                   "Use a supported built-in type or provide a specialization.");
 };

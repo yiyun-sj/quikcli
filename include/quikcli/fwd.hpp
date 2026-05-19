@@ -14,13 +14,4 @@ struct ParseError : std::runtime_error {
     explicit ParseError(std::string msg) : std::runtime_error(std::move(msg)) {}
 };
 
-namespace detail {
-
-template <typename T>
-concept Parseable = requires(std::string_view sv) {
-    { ArgType<T>::parse(sv) } -> std::same_as<T>;
-};
-
-} // namespace detail
-
 } // namespace quikcli
