@@ -16,6 +16,10 @@ struct FlagNameError : std::invalid_argument {
 
 namespace detail {
 
+template <typename T> struct is_optional : std::false_type {};
+template <typename T> struct is_optional<std::optional<T>> : std::true_type {};
+template <typename T> inline constexpr bool is_optional_v = is_optional<T>::value;
+
 inline void validate_flag_name(std::string_view name) {
     if (name.empty())
         throw FlagNameError("Flag name cannot be empty");
@@ -88,12 +92,39 @@ template <typename T> class Flag {
         return std::move(*this);
     }
 
+    T extract() {
+        switch (spec_.kind) {
+        case FlagKind::NoArg:
+            if constexpr (std::same_as<bool, T>) {
+                return spec_.raw_value.has_value();
+            }
+            // NoArg is required to be bool
+            throw ParseError("BUG: NoArg flag is not bool");
+        case FlagKind::Required:
+            if (!spec_.raw_value.has_value())
+                throw ParseError(std::format("required flag --{} missing", spec_.long_name));
+            return ArgType<T>::parse(*spec_.raw_value);
+        case FlagKind::OptionalWithDefault:
+            if (spec_.raw_value.has_value())
+                return ArgType<T>::parse(*spec_.raw_value);
+            return *default_;
+        case FlagKind::Optional:
+            if constexpr (detail::is_optional_v<T>) {
+                if (!spec_.raw_value.has_value())
+                    return std::nullopt;
+                return ArgType<typename T::value_type>::parse(*spec_.raw_value);
+            }
+            // Optional is optional<U> by construction
+            throw ParseError("BUG: Optional flag is not a optional<U>");
+        }
+    }
+
     const FlagSpec &spec() const { return spec_; }
     std::optional<T> default_value() const { return default_; }
 
   private:
     template <typename U> friend class Flag;
-    template <typename U> friend class Param;
+    template <typename... Us> friend class Param;
 
     FlagSpec spec_;
     std::optional<T> default_;

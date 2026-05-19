@@ -1,3 +1,4 @@
+#include "quikcli/fwd.hpp"
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 #include <quikcli/flag.hpp>
@@ -45,4 +46,32 @@ TEST_CASE("invalid names") {
     CHECK_THROWS_AS(quikcli::detail::validate_flag_name("-"), quikcli::FlagNameError);
     CHECK_THROWS_AS(quikcli::detail::validate_flag_name("--name"), quikcli::FlagNameError);
     CHECK_THROWS_AS(quikcli::Flag<int>::required("-name"), quikcli::FlagNameError);
+}
+
+TEST_CASE("extract parsed value from required flag") {
+    auto f = quikcli::Flag<int>::required("count");
+    CHECK_THROWS_AS(f.extract(), quikcli::ParseError);
+    f.spec().raw_value = "1";
+    CHECK(f.extract() == 1);
+}
+
+TEST_CASE("extract parsed value from noarg flag") {
+    auto f = quikcli::Flag<bool>::no_arg("verbose");
+    CHECK(!f.extract());
+    f.spec().raw_value = "";
+    CHECK(f.extract());
+}
+
+TEST_CASE("extract parsed value from optional flag") {
+    auto f = quikcli::Flag<int>::optional("count");
+    CHECK(!f.extract().has_value());
+    f.spec().raw_value = "1";
+    CHECK(f.extract() == 1);
+}
+
+TEST_CASE("extract parsed value from required flag") {
+    auto f = quikcli::Flag<int>::optional_with_default("count", 0);
+    CHECK(f.extract() == 0);
+    f.spec().raw_value = "1";
+    CHECK(f.extract() == 1);
 }
