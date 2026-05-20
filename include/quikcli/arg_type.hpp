@@ -4,8 +4,10 @@
 #include <charconv>
 #include <concepts>
 #include <format>
+#include <ranges>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace quikcli {
 
@@ -73,9 +75,23 @@ struct ArgType<T> {
     }
 };
 
-// Allows for FlagKing::Optional flags. Probably a bad idea to use directly.
+// Allows for FlagKind::Optional flags. Probably a bad idea to use directly.
 template <typename T> struct ArgType<std::optional<T>> {
     static std::optional<T> parse(std::string_view sv) { return ArgType<T>::parse(sv); }
+};
+
+// Allows for FlagKind::CommaDelimited flags. Probably a bad idea to use directly.
+template <typename T> struct ArgType<std::vector<T>> {
+    static std::vector<T> parse(std::string_view sv) {
+        auto parts = sv | std::views::split(',') | std::views::transform([](auto &&r) {
+                         return std::string_view(r.begin(), r.end());
+                     });
+
+        std::vector<T> result;
+        for (auto part : parts)
+            result.push_back(ArgType<T>::parse(part));
+        return result;
+    }
 };
 
 } // namespace quikcli

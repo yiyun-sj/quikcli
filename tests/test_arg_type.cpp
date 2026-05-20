@@ -1,19 +1,20 @@
+#include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 #include <quikcli/arg_type.hpp>
 
-TEST_CASE("BOOL ArgType") {
+TEST_CASE("bool argtype") {
     CHECK(quikcli::ArgType<bool>::parse("true") == true);
     CHECK(quikcli::ArgType<bool>::parse("false") == false);
     CHECK_THROWS_AS(quikcli::ArgType<bool>::parse("anything else"), quikcli::ParseError);
 }
 
-TEST_CASE("STRING ArgType") {
+TEST_CASE("string argtype") {
     CHECK(quikcli::ArgType<std::string>::parse("") == "");
     CHECK(quikcli::ArgType<std::string>::parse("this is a string") == "this is a string");
 }
 
-TEST_CASE("CHARACTER ArgType") {
+TEST_CASE("character argtype") {
     CHECK(quikcli::ArgType<char>::parse("a") == 'a');
     CHECK(quikcli::ArgType<signed char>::parse("a") == 'a');
     CHECK(quikcli::ArgType<unsigned char>::parse("a") == 'a');
@@ -25,7 +26,7 @@ TEST_CASE("CHARACTER ArgType") {
     CHECK_THROWS_AS(quikcli::ArgType<char>::parse("not a char"), quikcli::ParseError);
 }
 
-TEST_CASE("INTEGRAL ArgType") {
+TEST_CASE("integer argtype") {
     CHECK(quikcli::ArgType<short>::parse("0") == 0);
     CHECK(quikcli::ArgType<int>::parse("0") == 0);
     CHECK(quikcli::ArgType<long>::parse("0") == 0);
@@ -35,10 +36,19 @@ TEST_CASE("INTEGRAL ArgType") {
     CHECK_THROWS_AS(quikcli::ArgType<int>::parse("not integral"), quikcli::ParseError);
 }
 
-TEST_CASE("FLOATING_POINT ArgType") {
+TEST_CASE("float argtype") {
     CHECK(quikcli::ArgType<float>::parse("0.") == 0);
     CHECK(quikcli::ArgType<double>::parse("0.") == 0);
     CHECK(quikcli::ArgType<long double>::parse("0.") == 0);
     CHECK_THROWS_AS(quikcli::ArgType<float>::parse(""), quikcli::ParseError);
     CHECK_THROWS_AS(quikcli::ArgType<float>::parse("not floating point"), quikcli::ParseError);
+}
+
+TEST_CASE("optional argtype") {
+    CHECK(quikcli::ArgType<std::optional<int>>::parse("0") == 0);
+    CHECK(quikcli::ArgType<std::optional<std::optional<int>>>::parse("0") == 0);
+}
+
+TEST_CASE("vector argtype") {
+    CHECK(quikcli::ArgType<std::vector<int>>::parse("0,1,2,3") == std::vector<int>{0, 1, 2, 3});
 }
