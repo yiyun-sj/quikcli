@@ -70,10 +70,10 @@ struct FlagSpec {
     mutable std::vector<std::string> raw_values; // Special case for AnonVariadic
 };
 
-template <typename T> class Flag {
+template <typename T, typename ExtractT = T> class Flag {
   public:
     static Flag<T> required(std::string name)
-        requires detail::Parseable<T>
+        requires detail::Roundtrippable<T>
     {
         detail::validate_flag_name(name);
         FlagSpec s;
@@ -82,18 +82,18 @@ template <typename T> class Flag {
         return Flag<T>(std::move(s));
     }
 
-    static Flag<std::optional<T>> optional(std::string name)
-        requires detail::Parseable<T>
+    static Flag<T, std::optional<T>> optional(std::string name)
+        requires detail::Roundtrippable<T>
     {
         detail::validate_flag_name(name);
         FlagSpec s;
         s.long_name = std::move(name);
         s.kind = FlagKind::Optional;
-        return Flag<std::optional<T>>(std::move(s));
+        return Flag<T, std::optional<T>>(std::move(s));
     }
 
     static Flag<T> optional_with_default(std::string name, T default_value)
-        requires detail::Parseable<T>
+        requires detail::Roundtrippable<T>
     {
         detail::validate_flag_name(name);
         FlagSpec s;
@@ -113,18 +113,18 @@ template <typename T> class Flag {
         return Flag<T>(std::move(s));
     }
 
-    static Flag<std::vector<T>> comma_delimited(std::string name)
-        requires detail::Parseable<T>
+    static Flag<T, std::vector<T>> comma_delimited(std::string name)
+        requires detail::Roundtrippable<T>
     {
         detail::validate_flag_name(name);
         FlagSpec s;
         s.long_name = std::move(name);
         s.kind = FlagKind::CommaDelimited;
-        return Flag<std::vector<T>>(std::move(s));
+        return Flag<T, std::vector<T>>(std::move(s));
     }
 
     static Flag<T> anon(std::string name)
-        requires detail::Parseable<T>
+        requires detail::Roundtrippable<T>
     {
         FlagSpec s;
         s.long_name = std::move(name);
@@ -132,17 +132,17 @@ template <typename T> class Flag {
         return Flag<T>(std::move(s));
     }
 
-    static Flag<std::optional<T>> anon_optional(std::string name)
-        requires detail::Parseable<T>
+    static Flag<T, std::optional<T>> anon_optional(std::string name)
+        requires detail::Roundtrippable<T>
     {
         FlagSpec s;
         s.long_name = std::move(name);
         s.kind = FlagKind::AnonOptional;
-        return Flag<std::optional<T>>(std::move(s));
+        return Flag<T, std::optional<T>>(std::move(s));
     }
 
     static Flag<T> anon_optional_with_default(std::string name, T default_value)
-        requires detail::Parseable<T>
+        requires detail::Roundtrippable<T>
     {
         FlagSpec s;
         s.long_name = std::move(name);
@@ -152,13 +152,13 @@ template <typename T> class Flag {
         return f;
     }
 
-    static Flag<std::vector<T>> anon_variadic(std::string name)
-        requires detail::Parseable<T>
+    static Flag<T, std::vector<T>> anon_variadic(std::string name)
+        requires detail::Roundtrippable<T>
     {
         FlagSpec s;
         s.long_name = std::move(name);
         s.kind = FlagKind::AnonVariadic;
-        return Flag<std::vector<T>>(std::move(s));
+        return Flag<T, std::vector<T>>(std::move(s));
     }
 
     Flag<T> &&doc(std::string text) && {
@@ -172,7 +172,50 @@ template <typename T> class Flag {
         return std::move(*this);
     }
 
-    T extract() {
+    // Special case for optional and variadic flags
+    ExtractT extract()
+        requires(!std::same_as<T, ExtractT>)
+    {
+        switch (spec_.kind) {
+        case FlagKind::Optional:
+        case FlagKind::AnonOptional:
+            if constexpr (detail::is_optional_v<ExtractT>) {
+                if (!spec_.raw_value.has_value())
+                    return std::nullopt;
+                return ArgType<T>::parse(*spec_.raw_value);
+            }
+            // Optional is optional<U> by construction
+            throw ParseError("BUG: Optional flag is not a optional<U>");
+        case FlagKind::CommaDelimited: {
+            if constexpr (detail::is_vector_v<ExtractT>) {
+                auto parts =
+                    *spec_.raw_value | std::views::split(',') | std::views::transform([](auto &&r) {
+                        return std::string_view(r.begin(), r.end());
+                    });
+
+                ExtractT result;
+                for (auto part : parts)
+                    result.push_back(ArgType<T>::parse(part));
+                return result;
+            }
+            throw ParseError("BUG: CommaDelimited flag is not vector<U>");
+        }
+        case FlagKind::AnonVariadic:
+            if constexpr (detail::is_vector_v<ExtractT>) {
+                ExtractT result;
+                for (const auto &s : spec_.raw_values)
+                    result.push_back(ArgType<T>::parse(s));
+                return result;
+            }
+            throw ParseError("BUG: AnonVariadic flag is not vector<U>");
+        default:
+            throw ParseError("BUG: only optional and variadic flags can have T != ExtractT");
+        }
+    }
+
+    ExtractT extract()
+        requires std::same_as<T, ExtractT>
+    {
         switch (spec_.kind) {
         case FlagKind::NoArg:
             if constexpr (std::same_as<bool, T>) {
@@ -189,29 +232,12 @@ template <typename T> class Flag {
             if (spec_.raw_value.has_value())
                 return ArgType<T>::parse(*spec_.raw_value);
             return *default_;
-        case FlagKind::Optional:
-        case FlagKind::AnonOptional:
-            if constexpr (detail::is_optional_v<T>) {
-                if (!spec_.raw_value.has_value())
-                    return std::nullopt;
-                return ArgType<typename T::value_type>::parse(*spec_.raw_value);
-            }
-            // Optional is optional<U> by construction
-            throw ParseError("BUG: Optional flag is not a optional<U>");
-        case FlagKind::CommaDelimited:
-            return ArgType<T>::parse(spec_.raw_value.value_or(""));
         case FlagKind::Anon:
             if (!spec_.raw_value.has_value())
                 throw ParseError(std::format("required anonymous argument missing"));
             return ArgType<T>::parse(*spec_.raw_value);
-        case FlagKind::AnonVariadic:
-            if constexpr (detail::is_vector_v<T>) {
-                T result;
-                for (const auto &s : spec_.raw_values)
-                    result.push_back(ArgType<typename T::value_type>::parse(s));
-                return result;
-            }
-            throw ParseError("BUG: AnonVariadic flag is not vector<U>");
+        default:
+            throw ParseError("BUG: optional and variadic flags must have T != ExtractT");
         }
     }
 
@@ -219,7 +245,7 @@ template <typename T> class Flag {
     std::optional<T> default_value() const { return default_; }
 
   private:
-    template <typename U> friend class Flag;
+    template <typename U, typename ExtractU> friend class Flag;
     template <typename... Us> friend class Param;
 
     FlagSpec spec_;

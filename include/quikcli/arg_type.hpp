@@ -14,7 +14,8 @@ namespace quikcli {
 namespace detail {
 
 template <typename T>
-concept Parseable = requires(std::string_view sv) {
+concept Roundtrippable = requires(std::string_view sv, T val) {
+    { ArgType<T>::type_str } -> std::convertible_to<std::string_view>;
     { ArgType<T>::parse(sv) } -> std::same_as<T>;
 };
 
@@ -27,10 +28,13 @@ concept Character =
 } // namespace detail
 
 template <> struct ArgType<std::string> {
+    static constexpr std::string_view type_str = "STRING";
     static std::string parse(std::string_view sv) { return std::string(sv); };
+    static std::string to_string(std::string val) { return val; };
 };
 
 template <> struct ArgType<bool> {
+    static constexpr std::string_view type_str = "BOOL";
     static bool parse(std::string_view sv) {
         if (sv == "true")
             return true;
@@ -43,6 +47,7 @@ template <> struct ArgType<bool> {
 template <typename T>
     requires(detail::Character<T>)
 struct ArgType<T> {
+    static constexpr std::string_view type_str = "CHAR";
     static T parse(std::string_view sv) {
         if (sv.size() != 1)
             throw ParseError(
@@ -54,6 +59,7 @@ struct ArgType<T> {
 template <typename T>
     requires(std::integral<T> && !std::same_as<T, bool> && !detail::Character<T>)
 struct ArgType<T> {
+    static constexpr std::string_view type_str = "INT";
     static T parse(std::string_view sv) {
         T value{};
         auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), value);
@@ -66,31 +72,13 @@ struct ArgType<T> {
 template <typename T>
     requires std::floating_point<T>
 struct ArgType<T> {
+    static constexpr std::string_view type_str = "FLOAT";
     static T parse(std::string_view sv) {
         T value{};
         auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), value);
         if (ec != std::errc{} || ptr != sv.data() + sv.size())
             throw ParseError(std::format("float argument failed to parse, got {}", sv));
         return value;
-    }
-};
-
-// Allows for FlagKind::Optional flags. Probably a bad idea to use directly.
-template <typename T> struct ArgType<std::optional<T>> {
-    static std::optional<T> parse(std::string_view sv) { return ArgType<T>::parse(sv); }
-};
-
-// Allows for FlagKind::CommaDelimited flags. Probably a bad idea to use directly.
-template <typename T> struct ArgType<std::vector<T>> {
-    static std::vector<T> parse(std::string_view sv) {
-        auto parts = sv | std::views::split(',') | std::views::transform([](auto &&r) {
-                         return std::string_view(r.begin(), r.end());
-                     });
-
-        std::vector<T> result;
-        for (auto part : parts)
-            result.push_back(ArgType<T>::parse(part));
-        return result;
     }
 };
 

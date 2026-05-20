@@ -5,7 +5,8 @@
 namespace quikcli {
 
 template <typename T> struct ArgType;
-template <typename T> class Flag;
+
+template <typename T, typename ExtractT> class Flag;
 template <typename... Ts> class Param;
 class Command;
 

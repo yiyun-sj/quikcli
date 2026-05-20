@@ -6,11 +6,21 @@
 
 namespace quikcli {
 
+namespace detail {
+
+template <typename F> struct flag_extract_type;
+template <typename T, typename ExtractT> struct flag_extract_type<Flag<T, ExtractT>> {
+    using type = ExtractT;
+};
+template <typename F> using flag_extract_type_t = typename flag_extract_type<F>::type;
+
+} // namespace detail
+
 template <typename... Ts> class Param {
   public:
-    explicit Param(Flag<Ts>... fs) : flags_(std::move(fs)...) {}
+    explicit Param(Ts... fs) : flags_(std::move(fs)...) {}
 
-    template <typename U> Param<Ts..., U> operator&(Flag<U> rhs) {
+    template <typename U> Param<Ts..., U> operator&(U rhs) {
         return std::apply(
             [&rhs](auto &&...fs) {
                 return Param<Ts..., U>(std::forward<decltype(fs)>(fs)..., std::move(rhs));
@@ -38,20 +48,22 @@ template <typename... Ts> class Param {
         return result;
     }
 
-    std::tuple<Ts...> extract() {
+    std::tuple<detail::flag_extract_type_t<Ts>...> extract() {
         return std::apply([](auto &...fs) { return std::make_tuple(fs.extract()...); }, flags_);
     }
 
   private:
     template <typename... Us> friend class Param;
 
-    std::tuple<Flag<Ts>...> flags_;
+    std::tuple<Ts...> flags_;
 };
 
-template <typename T, typename U> Param<T, U> operator&(Flag<T> lhs, Flag<U> rhs) {
-    return Param<T, U>(std::move(lhs), std::move(rhs));
+template <typename T, typename ExtractT, typename U, typename ExtractU>
+Param<Flag<T, ExtractT>, Flag<U, ExtractU>> operator&(Flag<T, ExtractT> lhs,
+                                                      Flag<U, ExtractU> rhs) {
+    return Param<Flag<T, ExtractT>, Flag<U, ExtractU>>(std::move(lhs), std::move(rhs));
 }
 
-template <typename... Ts> Param<Ts...> param(Flag<Ts>... fs) { return Param<Ts...>(fs...); }
+template <typename... Ts> Param<Ts...> param(Ts... fs) { return Param<Ts...>(fs...); }
 
 } // namespace quikcli

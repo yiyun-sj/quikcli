@@ -1,4 +1,3 @@
-#include <vector>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 #include <quikcli/arg_type.hpp>
@@ -42,13 +41,4 @@ TEST_CASE("float argtype") {
     CHECK(quikcli::ArgType<long double>::parse("0.") == 0);
     CHECK_THROWS_AS(quikcli::ArgType<float>::parse(""), quikcli::ParseError);
     CHECK_THROWS_AS(quikcli::ArgType<float>::parse("not floating point"), quikcli::ParseError);
-}
-
-TEST_CASE("optional argtype") {
-    CHECK(quikcli::ArgType<std::optional<int>>::parse("0") == 0);
-    CHECK(quikcli::ArgType<std::optional<std::optional<int>>>::parse("0") == 0);
-}
-
-TEST_CASE("vector argtype") {
-    CHECK(quikcli::ArgType<std::vector<int>>::parse("0,1,2,3") == std::vector<int>{0, 1, 2, 3});
 }
