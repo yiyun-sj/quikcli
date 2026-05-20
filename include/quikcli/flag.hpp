@@ -27,9 +27,24 @@ template <typename T> inline constexpr bool is_vector_v = is_vector<T>::value;
 
 inline void validate_flag_name(std::string_view name) {
     if (name.empty())
-        throw FlagNameError("Flag name cannot be empty");
+        throw FlagNameError("flag name cannot be empty");
     if (name.front() == '-')
-        throw FlagNameError("Flag name cannot start with a '-'");
+        throw FlagNameError("flag name cannot start with a '-'");
+    if (name.find('=') != std::string_view::npos)
+        throw FlagNameError("flag name cannot contain '='");
+    if (name == "help")
+        throw FlagNameError("flag name \"help\" is reserved");
+    if (name == "version")
+        throw FlagNameError("flag name \"version\" is reserved");
+}
+
+inline void validate_flag_alias(char alias) {
+    if (alias == '-')
+        throw FlagNameError("flag alias cannot be '-'");
+    if (alias == 'h')
+        throw FlagNameError("flag alias 'h' is reserved for \"help\"");
+    if (alias == 'V')
+        throw FlagNameError("flag alias 'V' is reserved for \"version\"");
 }
 
 } // namespace detail
@@ -108,36 +123,40 @@ template <typename T> class Flag {
         return Flag<std::vector<T>>(std::move(s));
     }
 
-    static Flag<T> anon()
+    static Flag<T> anon(std::string name)
         requires detail::Parseable<T>
     {
         FlagSpec s;
+        s.long_name = std::move(name);
         s.kind = FlagKind::Anon;
         return Flag<T>(std::move(s));
     }
 
-    static Flag<std::optional<T>> anon_optional()
+    static Flag<std::optional<T>> anon_optional(std::string name)
         requires detail::Parseable<T>
     {
         FlagSpec s;
+        s.long_name = std::move(name);
         s.kind = FlagKind::AnonOptional;
         return Flag<std::optional<T>>(std::move(s));
     }
 
-    static Flag<T> anon_optional_with_default(T default_value)
+    static Flag<T> anon_optional_with_default(std::string name, T default_value)
         requires detail::Parseable<T>
     {
         FlagSpec s;
+        s.long_name = std::move(name);
         s.kind = FlagKind::AnonOptionalWithDefault;
         Flag<T> f(std::move(s));
         f.default_ = std::move(default_value);
         return f;
     }
 
-    static Flag<std::vector<T>> anon_variadic()
+    static Flag<std::vector<T>> anon_variadic(std::string name)
         requires detail::Parseable<T>
     {
         FlagSpec s;
+        s.long_name = std::move(name);
         s.kind = FlagKind::AnonVariadic;
         return Flag<std::vector<T>>(std::move(s));
     }
@@ -148,6 +167,7 @@ template <typename T> class Flag {
     }
 
     Flag<T> &&alias(char c) && {
+        detail::validate_flag_alias(c);
         spec_.short_alias = c;
         return std::move(*this);
     }

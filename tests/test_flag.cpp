@@ -35,28 +35,28 @@ TEST_CASE("no_arg flag") {
 }
 
 TEST_CASE("anon flag") {
-    auto f = quikcli::Flag<int>::anon();
+    auto f = quikcli::Flag<int>::anon("name");
     CHECK(f.spec().kind == quikcli::FlagKind::Anon);
-    CHECK(f.spec().long_name == "");
+    CHECK(f.spec().long_name == "name");
 }
 
 TEST_CASE("anon_optional flag") {
-    auto f = quikcli::Flag<int>::anon_optional();
+    auto f = quikcli::Flag<int>::anon_optional("name");
     CHECK(f.spec().kind == quikcli::FlagKind::AnonOptional);
-    CHECK(f.spec().long_name == "");
+    CHECK(f.spec().long_name == "name");
 }
 
 TEST_CASE("anon_optional_with_default flag") {
-    auto f = quikcli::Flag<int>::anon_optional_with_default(1);
+    auto f = quikcli::Flag<int>::anon_optional_with_default("name", 1);
     CHECK(f.spec().kind == quikcli::FlagKind::AnonOptionalWithDefault);
-    CHECK(f.spec().long_name == "");
+    CHECK(f.spec().long_name == "name");
     CHECK(f.default_value() == 1);
 }
 
 TEST_CASE("anon_variadic flag") {
-    auto f = quikcli::Flag<int>::anon_variadic();
+    auto f = quikcli::Flag<int>::anon_variadic("name");
     CHECK(f.spec().kind == quikcli::FlagKind::AnonVariadic);
-    CHECK(f.spec().long_name == "");
+    CHECK(f.spec().long_name == "name");
     CHECK(f.spec().raw_values.empty());
 }
 
@@ -80,7 +80,17 @@ TEST_CASE("invalid names") {
     CHECK_THROWS_AS(quikcli::detail::validate_flag_name(""), quikcli::FlagNameError);
     CHECK_THROWS_AS(quikcli::detail::validate_flag_name("-"), quikcli::FlagNameError);
     CHECK_THROWS_AS(quikcli::detail::validate_flag_name("--name"), quikcli::FlagNameError);
+    CHECK_THROWS_AS(quikcli::detail::validate_flag_name("equal="), quikcli::FlagNameError);
+    CHECK_THROWS_AS(quikcli::detail::validate_flag_name("help"), quikcli::FlagNameError);
+    CHECK_THROWS_AS(quikcli::detail::validate_flag_name("version"), quikcli::FlagNameError);
     CHECK_THROWS_AS(quikcli::Flag<int>::required("-name"), quikcli::FlagNameError);
+}
+
+TEST_CASE("invalid aliases") {
+    CHECK_THROWS_AS(quikcli::detail::validate_flag_alias('-'), quikcli::FlagNameError);
+    CHECK_THROWS_AS(quikcli::detail::validate_flag_alias('h'), quikcli::FlagNameError);
+    CHECK_THROWS_AS(quikcli::detail::validate_flag_alias('V'), quikcli::FlagNameError);
+    CHECK_THROWS_AS(quikcli::Flag<int>::required("name").alias('-'), quikcli::FlagNameError);
 }
 
 TEST_CASE("extract parsed value from required flag") {
@@ -121,28 +131,28 @@ TEST_CASE("extract parsed value from comma_delimited flag") {
 }
 
 TEST_CASE("extract parsed value from anon flag") {
-    auto f = quikcli::Flag<int>::anon();
+    auto f = quikcli::Flag<int>::anon("name");
     CHECK_THROWS_AS(f.extract(), quikcli::ParseError);
     f.spec().raw_value = "1";
     CHECK(f.extract() == 1);
 }
 
 TEST_CASE("extract parsed value from anon_optional flag") {
-    auto f = quikcli::Flag<int>::anon_optional();
+    auto f = quikcli::Flag<int>::anon_optional("name");
     CHECK(!f.extract().has_value());
     f.spec().raw_value = "1";
     CHECK(f.extract() == 1);
 }
 
 TEST_CASE("extract parsed value from anon_optional_with_default flag") {
-    auto f = quikcli::Flag<int>::anon_optional_with_default(0);
+    auto f = quikcli::Flag<int>::anon_optional_with_default("name", 0);
     CHECK(f.extract() == 0);
     f.spec().raw_value = "1";
     CHECK(f.extract() == 1);
 }
 
 TEST_CASE("extract parsed value from anon_variadic flag") {
-    auto f = quikcli::Flag<int>::anon_variadic();
+    auto f = quikcli::Flag<int>::anon_variadic("name");
     CHECK(f.extract() == std::vector<int>{});
     f.spec().raw_values.push_back("1");
     CHECK(f.extract() == std::vector<int>{1});
