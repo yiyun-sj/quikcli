@@ -1,9 +1,10 @@
 #pragma once
 #include "flag.hpp"
-#include "quikcli/fwd.hpp"
+#include "fwd.hpp"
 
 #include <cassert>
 #include <format>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -27,6 +28,10 @@ class Parser {
   public:
     explicit Parser(std::vector<const FlagSpec *> specs) {
         for (auto *s : specs) {
+            // TODO: raw value is cleared because FlagSpec can be shared between copied Params
+            s->raw_value = std::nullopt;
+            s->raw_values.clear();
+
             bool is_anon = s->kind == FlagKind::Anon || s->kind == FlagKind::AnonOptional ||
                            s->kind == FlagKind::AnonOptionalWithDefault ||
                            s->kind == FlagKind::AnonVariadic;
@@ -38,20 +43,19 @@ class Parser {
         }
     }
 
-    ParseResult parse(int argc, char **argv) const {
-        auto tokens = tokenize(argc, argv);
+    ParseResult parse(std::span<char *> args) const {
+        auto tokens = tokenize(args);
         ParseResult out;
         match_tokens(tokens, out);
         return out;
     }
 
   private:
-    std::vector<Token> tokenize(int argc, char **argv) const {
+    std::vector<Token> tokenize(std::span<char *> args) const {
         std::vector<Token> tokens;
         bool past_double_dash = false;
 
-        for (int i = 1; i < argc; ++i) {
-            std::string_view arg = argv[i];
+        for (std::string_view arg : args) {
 
             if (past_double_dash) {
                 tokens.push_back({TokenKind::ValueOrPositional, std::string(arg)});
