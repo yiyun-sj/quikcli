@@ -12,7 +12,7 @@
 namespace quikcli {
 namespace detail {
 
-class HelpFormatter {
+class Help {
   public:
     static std::string format_basic(std::string_view program_path, std::string_view summary,
                                     const std::vector<const FlagSpec *> &specs) {
