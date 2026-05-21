@@ -7,7 +7,7 @@ namespace quikcli {
 template <typename T> struct ArgType;
 
 template <typename T, typename ExtractT> class Flag;
-template <typename... Ts> class Param;
+template <typename T> class Param;
 class Command;
 
 struct ParseError : std::runtime_error {

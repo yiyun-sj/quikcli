@@ -66,7 +66,7 @@ struct FlagSpec {
     std::string long_name;
     std::string type_hint;
     std::string doc_str;
-    std::string default_str; // TODO: check if possible to format at help msg construction instead
+    std::string default_str;
     std::optional<char> short_alias;
     FlagKind kind;
     mutable std::optional<std::string> raw_value;
@@ -260,7 +260,7 @@ template <typename T, typename ExtractT = T> class Flag {
 
   private:
     template <typename U, typename ExtractU> friend class Flag;
-    template <typename... Us> friend class Param;
+    template <typename U> friend class Param;
 
     FlagSpec spec_;
     std::optional<T> default_;
