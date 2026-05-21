@@ -4,20 +4,24 @@
 #include <charconv>
 #include <concepts>
 #include <format>
-#include <ranges>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace quikcli {
 
 namespace detail {
 
+// Backport of C++ 23 Formattable concept; used to print default values of the arg.
+template <typename T>
+concept Formattable = requires(T &v, std::format_context ctx) {
+    std::formatter<std::remove_cvref_t<T>>().format(v, ctx);
+};
+
 template <typename T>
 concept Roundtrippable = requires(std::string_view sv, T val) {
     { ArgType<T>::type_str } -> std::convertible_to<std::string_view>;
     { ArgType<T>::parse(sv) } -> std::same_as<T>;
-};
+} && Formattable<T>;
 
 template <typename T>
 concept Character =

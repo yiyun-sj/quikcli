@@ -1,8 +1,7 @@
-#include "quikcli/flag.hpp"
-
-#include <optional>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
+#include <optional>
+#include <quikcli/flag.hpp>
 #include <quikcli/param.hpp>
 
 using namespace quikcli;

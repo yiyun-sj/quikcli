@@ -4,6 +4,7 @@
 
 #include <concepts>
 #include <optional>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -63,7 +64,9 @@ enum class FlagKind {
 
 struct FlagSpec {
     std::string long_name;
+    std::string type_hint;
     std::string doc_str;
+    std::string default_str; // TODO: check if possible to format at help msg construction instead
     std::optional<char> short_alias;
     FlagKind kind;
     mutable std::optional<std::string> raw_value;
@@ -78,6 +81,7 @@ template <typename T, typename ExtractT = T> class Flag {
         detail::validate_flag_name(name);
         FlagSpec s;
         s.long_name = std::move(name);
+        s.type_hint = ArgType<T>::type_str;
         s.kind = FlagKind::Required;
         return Flag<T>(std::move(s));
     }
@@ -88,6 +92,7 @@ template <typename T, typename ExtractT = T> class Flag {
         detail::validate_flag_name(name);
         FlagSpec s;
         s.long_name = std::move(name);
+        s.type_hint = ArgType<T>::type_str;
         s.kind = FlagKind::Optional;
         return Flag<T, std::optional<T>>(std::move(s));
     }
@@ -98,6 +103,8 @@ template <typename T, typename ExtractT = T> class Flag {
         detail::validate_flag_name(name);
         FlagSpec s;
         s.long_name = std::move(name);
+        s.type_hint = ArgType<T>::type_str;
+        s.default_str = std::format("{}", default_value);
         s.kind = FlagKind::OptionalWithDefault;
         Flag<T> f(std::move(s));
         f.default_ = std::move(default_value);
@@ -109,6 +116,7 @@ template <typename T, typename ExtractT = T> class Flag {
     {
         FlagSpec s;
         s.long_name = std::move(name);
+        s.type_hint = ArgType<T>::type_str;
         s.kind = FlagKind::NoArg;
         return Flag<T>(std::move(s));
     }
@@ -119,6 +127,7 @@ template <typename T, typename ExtractT = T> class Flag {
         detail::validate_flag_name(name);
         FlagSpec s;
         s.long_name = std::move(name);
+        s.type_hint = ArgType<T>::type_str;
         s.kind = FlagKind::CommaDelimited;
         return Flag<T, std::vector<T>>(std::move(s));
     }
@@ -128,6 +137,7 @@ template <typename T, typename ExtractT = T> class Flag {
     {
         FlagSpec s;
         s.long_name = std::move(name);
+        s.type_hint = ArgType<T>::type_str;
         s.kind = FlagKind::Anon;
         return Flag<T>(std::move(s));
     }
@@ -137,6 +147,7 @@ template <typename T, typename ExtractT = T> class Flag {
     {
         FlagSpec s;
         s.long_name = std::move(name);
+        s.type_hint = ArgType<T>::type_str;
         s.kind = FlagKind::AnonOptional;
         return Flag<T, std::optional<T>>(std::move(s));
     }
@@ -146,6 +157,8 @@ template <typename T, typename ExtractT = T> class Flag {
     {
         FlagSpec s;
         s.long_name = std::move(name);
+        s.type_hint = ArgType<T>::type_str;
+        s.default_str = std::format("{}", default_value);
         s.kind = FlagKind::AnonOptionalWithDefault;
         Flag<T> f(std::move(s));
         f.default_ = std::move(default_value);
@@ -157,16 +170,17 @@ template <typename T, typename ExtractT = T> class Flag {
     {
         FlagSpec s;
         s.long_name = std::move(name);
+        s.type_hint = ArgType<T>::type_str;
         s.kind = FlagKind::AnonVariadic;
         return Flag<T, std::vector<T>>(std::move(s));
     }
 
-    Flag<T> &&doc(std::string text) && {
+    Flag<T, ExtractT> &&doc(std::string text) && {
         spec_.doc_str = std::move(text);
         return std::move(*this);
     }
 
-    Flag<T> &&alias(char c) && {
+    Flag<T, ExtractT> &&alias(char c) && {
         detail::validate_flag_alias(c);
         spec_.short_alias = c;
         return std::move(*this);
