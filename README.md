@@ -14,6 +14,7 @@ Heavily inspired by OCaml's [Core.Command](https://ocaml.org/p/core/v0.14.1/doc/
   - [Param\<T\>](#paramt)
   - [Command](#command)
 - [Build & Test](#build--test)
+- [Planned Work](#planned-work)
 
 ---
 
@@ -239,3 +240,11 @@ make all
 ```
 
 ---
+
+## Planned Work
+
+There are still things missing from this library.
+
+On the installation and docs side, CMake install and package manager support is missing, as well as CI for tests.
+
+In terms of features, more types of flags can be supported, bash autocomplete is missing, and more.
