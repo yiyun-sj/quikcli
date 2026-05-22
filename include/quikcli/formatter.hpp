@@ -15,6 +15,7 @@ namespace detail {
 class Help {
   public:
     static std::string format_basic(std::string_view program_path, std::string_view summary,
+                                    std::vector<std::string_view> subcommand_path,
                                     const std::vector<const FlagSpec *> &specs) {
         std::vector<const FlagSpec *> flag_specs, anon_specs;
         for (auto *s : specs) {
@@ -31,6 +32,10 @@ class Help {
 
         out += "  ";
         out += basename_of(program_path);
+        for (auto p : subcommand_path) {
+            out += " ";
+            out += p;
+        }
         for (auto *s : anon_specs) {
             out += " ";
             out += anon_usage_str(s);
@@ -53,6 +58,7 @@ class Help {
 
     static std::string
     format_group(std::string_view program_path, std::string_view summary,
+                 std::vector<std::string_view> subcommand_path,
                  const std::vector<std::pair<std::string, std::string>> &subcommand_summaries) {
         std::string out;
 
@@ -61,6 +67,10 @@ class Help {
 
         out += "  ";
         out += basename_of(program_path);
+        for (auto p : subcommand_path) {
+            out += " ";
+            out += p;
+        }
         out += " <subcommand>\n\n";
 
         out += "=== subcommands ===\n\n";

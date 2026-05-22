@@ -58,8 +58,6 @@ TEST_CASE("basic: --help prints to out") {
   [-h, --help]       . print this help text and exit
 )");
     CHECK(err.str().empty());
-    CHECK(out.str().find("a summary") != std::string::npos);
-    CHECK(out.str().find("prog") != std::string::npos);
 }
 
 TEST_CASE("basic: -h prints to out") {
@@ -114,8 +112,6 @@ TEST_CASE("group: 'help' prints group summary and subcommand list to out") {
   help     . explain a given subcommand
 )");
     CHECK(err.str().empty());
-    CHECK(out.str().find("root summary") != std::string::npos);
-    CHECK(out.str().find("sub") != std::string::npos);
 }
 
 TEST_CASE("group: 'version' prints version string to out") {
@@ -163,6 +159,27 @@ TEST_CASE("group: unknown subcommand writes error to err") {
 For usage information, run
 
   prog help
+
+)");
+}
+
+TEST_CASE("group: nested usage info prints with subcommand path") {
+    auto sub =
+        quikcli::Command::basic("sub summary", quikcli::Flag<int>::required("count"), [](int) {});
+    auto cmd = quikcli::Command::group("root summary", {{"sub", std::move(sub)}});
+
+    Argv arg{{"prog", "sub", "--no-such-flag"}};
+    std::ostringstream out, err;
+    cmd.run(arg.argc(), arg.argv(), "1.0", out, err);
+
+    CHECK(out.str().empty());
+    CHECK(err.str() == R"(Error parsing command line:
+
+  unknown flag --no-such-flag
+
+For usage information, run
+
+  prog sub --help
 
 )");
 }

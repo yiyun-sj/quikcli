@@ -4,6 +4,7 @@
 #include "parser.hpp"
 #include "quikcli/fwd.hpp"
 
+#include <cassert>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -44,9 +45,9 @@ class Command {
 
     void run(int argc, char **argv, std::string_view version, std::ostream &out = std::cout,
              std::ostream &err = std::cerr) const {
-        // TODO: maybe check that argc >= 1 here: [0] should always be path
-        // with an empty
-        run_impl(std::span<char *>(argv + 1, argc - 1), argv[0], version, out, err);
+        assert(argc >= 1); // argc should always contain program name when entered from cli
+        RunContext ctx{argv[0], version, out, err, {}};
+        run_impl(std::span<char *>(argv + 1, argc - 1), ctx);
     }
 
   private:
@@ -66,42 +67,46 @@ class Command {
 
     explicit Command(Impl impl) : impl_(std::move(impl)) {}
 
-    void run_impl(std::span<char *> args, std::string_view path, std::string_view version,
-                  std::ostream &out = std::cout, std::ostream &err = std::cerr) const {
-        std::visit([&](const auto &cmd) { run_impl(cmd, args, path, version, out, err); }, impl_);
-    }
-
     std::string summary() const {
         return std::visit([&](const auto &cmd) { return cmd.summary; }, impl_);
     }
 
-    static void run_impl(const Basic &b, std::span<char *> args, std::string_view path,
-                         std::string_view version, std::ostream &out = std::cout,
-                         std::ostream &err = std::cerr) {
+    struct RunContext {
+        std::string_view program_path;
+        std::string_view version;
+        std::ostream &out;
+        std::ostream &err;
+        std::vector<std::string_view> subcommand_path;
+    };
+
+    void run_impl(std::span<char *> args, RunContext &ctx) const {
+        std::visit([&](const auto &cmd) { run_impl(cmd, args, ctx); }, impl_);
+    }
+
+    static void run_impl(const Basic &b, std::span<char *> args, RunContext &ctx) {
         detail::Parser parser(b.specs);
         try {
             auto result = parser.parse(args);
 
             if (result.help_requested) {
-                out << detail::Help::format_basic(path, b.summary, b.specs);
+                ctx.out << detail::Help::format_basic(ctx.program_path, b.summary,
+                                                      ctx.subcommand_path, b.specs);
                 return;
             }
             if (result.version_requested) {
-                out << version << std::endl;
+                ctx.out << ctx.version << std::endl;
                 return;
             }
 
             b.run();
         } catch (ParseError pe) {
-            err << usage_info(pe.what(), path, true);
+            usage_info(pe.what(), ctx, true);
         }
     }
 
-    static void run_impl(const Group &g, std::span<char *> args, std::string_view path,
-                         std::string_view version, std::ostream &out = std::cout,
-                         std::ostream &err = std::cerr) {
+    static void run_impl(const Group &g, std::span<char *> args, RunContext &ctx) {
         if (args.empty()) {
-            err << usage_info("missing subcommand", path, false);
+            usage_info("missing subcommand", ctx, false);
             return;
         }
         std::string_view subcommand = args[0];
@@ -111,34 +116,33 @@ class Command {
             for (const auto &[name, sub] : g.subcommands) {
                 subcommand_summaries.emplace_back(name, sub->summary());
             }
-            out << detail::Help::format_group(path, g.summary, subcommand_summaries);
+            ctx.out << detail::Help::format_group(ctx.program_path, g.summary, ctx.subcommand_path,
+                                                  subcommand_summaries);
             return;
         }
         if (subcommand == "version") {
-            out << version << std::endl;
+            ctx.out << ctx.version << std::endl;
             return;
         }
         for (const auto &[name, sub] : g.subcommands) {
             if (subcommand == name) {
-                return sub->run_impl({args.begin() + 1, args.end()}, path, version, out, err);
+                ctx.subcommand_path.emplace_back(name);
+                return sub->run_impl({args.begin() + 1, args.end()}, ctx);
             }
         }
-        err << usage_info(std::format("unknown subcommand {}", subcommand), path, false);
+        usage_info(std::format("unknown subcommand {}", subcommand), ctx, false);
         return;
     }
 
-    // TODO: usage_info and help message both need all parent subcommands
-    static std::string usage_info(std::string_view error_msg, std::string_view path,
-                                  bool is_basic) {
-        std::string out;
-        out += "Error parsing command line:\n\n  ";
-        out += error_msg;
-        out += "\n\n";
-        out += "For usage information, run\n\n  ";
-        out += path;
-        out += is_basic ? " --" : " ";
-        out += "help\n\n";
-        return out;
+    static void usage_info(std::string_view error_msg, RunContext &ctx, bool is_basic) {
+        ctx.err << "Error parsing command line:\n\n  ";
+        ctx.err << error_msg << "\n\n";
+        ctx.err << "For usage information, run\n\n  ";
+        ctx.err << ctx.program_path;
+        for (auto sub : ctx.subcommand_path) {
+            ctx.err << " " << sub;
+        }
+        ctx.err << (is_basic ? " --" : " ") << "help\n\n";
     }
 };
 

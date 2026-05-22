@@ -107,7 +107,6 @@ TEST_CASE("duplicate long flag throws") {
     CHECK_THROWS_AS(parser.parse(args), quikcli::ParseError);
 }
 
-// TODO: decide if this is actually okay
 TEST_CASE("duplicate no-arg flag throws") {
     auto verbose = quikcli::Flag<bool>::no_arg("verbose").alias('v');
     Parser parser({&verbose.spec()});

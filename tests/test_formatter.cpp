@@ -18,7 +18,7 @@ TEST_CASE("format basic command no args") {
     std::vector<const quikcli::FlagSpec *> specs = p.specs();
 
     std::string help =
-        quikcli::detail::Help::format_basic("./example", "An example program", specs);
+        quikcli::detail::Help::format_basic("./example", "An example program", {}, specs);
 
     CHECK(help == R"(An example program
 
@@ -54,11 +54,11 @@ TEST_CASE("format basic command") {
     std::vector<const quikcli::FlagSpec *> specs = p.specs();
 
     std::string help =
-        quikcli::detail::Help::format_basic("./example", "An example program", specs);
+        quikcli::detail::Help::format_basic("./example.exe", "An example program", {"sub"}, specs);
 
     CHECK(help == R"(An example program
 
-  example <input> [output] [compression] [extras ...]
+  example.exe sub <input> [output] [compression] [extras ...]
 
 === arguments ===
 
@@ -82,7 +82,7 @@ TEST_CASE("format basic command") {
 TEST_CASE("format group command") {
     std::vector<std::pair<std::string, std::string>> s{{"example", "An example program"}};
     std::string help = quikcli::detail::Help::format_group(
-        "/path/to/example", "An example program with subcommands", s);
+        "/path/to/example", "An example program with subcommands", {}, s);
 
     CHECK(help == R"(An example program with subcommands
 
