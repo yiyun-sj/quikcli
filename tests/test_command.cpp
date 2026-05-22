@@ -24,7 +24,8 @@ TEST_CASE("basic: parse error for unknown flag writes to err, not out") {
     auto cmd = Command::basic("test command", Flag<int>::required("count"), [](int) {});
 
     Argv arg{{"prog", "--no-such-flag"}};
-    std::ostringstream out, err;
+    std::ostringstream out;
+    std::ostringstream err;
     cmd.run(arg.argc(), arg.argv(), "1.0", out, err);
 
     CHECK(out.str().empty());
@@ -43,7 +44,8 @@ TEST_CASE("basic: --help prints to out") {
     auto cmd = Command::basic("a summary", Flag<int>::required("count"), [](int) {});
 
     Argv arg{{"prog", "--help"}};
-    std::ostringstream out, err;
+    std::ostringstream out;
+    std::ostringstream err;
     cmd.run(arg.argc(), arg.argv(), "1.0", out, err);
 
     CHECK(out.str() == R"(a summary
@@ -63,7 +65,8 @@ TEST_CASE("basic: -h prints to out") {
     auto cmd = Command::basic("a summary", Flag<int>::required("count"), [](int) {});
 
     Argv arg{{"prog", "-h"}};
-    std::ostringstream out, err;
+    std::ostringstream out;
+    std::ostringstream err;
     cmd.run(arg.argc(), arg.argv(), "1.0", out, err);
 
     CHECK(out.str() == R"(a summary
@@ -83,7 +86,8 @@ TEST_CASE("basic: --version prints version string to out") {
     auto cmd = Command::basic("test", Flag<int>::required("count"), [](int) {});
 
     Argv arg{{"prog", "--version"}};
-    std::ostringstream out, err;
+    std::ostringstream out;
+    std::ostringstream err;
     cmd.run(arg.argc(), arg.argv(), "2.3.4", out, err);
 
     CHECK(out.str() == "2.3.4\n");
@@ -95,7 +99,8 @@ TEST_CASE("group: 'help' prints group summary and subcommand list to out") {
     auto cmd = Command::group("root summary", {{"sub", std::move(sub)}});
 
     Argv arg{{"prog", "help"}};
-    std::ostringstream out, err;
+    std::ostringstream out;
+    std::ostringstream err;
     cmd.run(arg.argc(), arg.argv(), "1.0", out, err);
 
     CHECK(out.str() == R"(root summary
@@ -115,7 +120,8 @@ TEST_CASE("group: 'version' prints version string to out") {
     auto cmd = Command::group("root summary", {});
 
     Argv arg{{"prog", "version"}};
-    std::ostringstream out, err;
+    std::ostringstream out;
+    std::ostringstream err;
     cmd.run(arg.argc(), arg.argv(), "4.5.6", out, err);
 
     CHECK(out.str() == "4.5.6\n");
@@ -126,7 +132,8 @@ TEST_CASE("group: missing subcommand writes error to err") {
     auto cmd = Command::group("root summary", {});
 
     Argv arg{{"prog"}};
-    std::ostringstream out, err;
+    std::ostringstream out;
+    std::ostringstream err;
     cmd.run(arg.argc(), arg.argv(), "1.0", out, err);
 
     CHECK(out.str().empty());
@@ -145,7 +152,8 @@ TEST_CASE("group: unknown subcommand writes error to err") {
     auto cmd = Command::group("root summary", {});
 
     Argv arg{{"prog", "unknown"}};
-    std::ostringstream out, err;
+    std::ostringstream out;
+    std::ostringstream err;
     cmd.run(arg.argc(), arg.argv(), "1.0", out, err);
 
     CHECK(out.str().empty());
@@ -165,7 +173,8 @@ TEST_CASE("group: nested usage info prints with subcommand path") {
     auto cmd = Command::group("root summary", {{"sub", std::move(sub)}});
 
     Argv arg{{"prog", "sub", "--no-such-flag"}};
-    std::ostringstream out, err;
+    std::ostringstream out;
+    std::ostringstream err;
     cmd.run(arg.argc(), arg.argv(), "1.0", out, err);
 
     CHECK(out.str().empty());
@@ -235,7 +244,8 @@ TEST_CASE("end-to-end: archive CLI") {
 
     SUBCASE("add: all flags parsed and piped into struct") {
         Argv arg{{"prog", "add", "notes.txt", "--tags", "work,todo,urgent", "-v"}};
-        std::ostringstream out, err;
+        std::ostringstream out;
+        std::ostringstream err;
         cli.run(arg.argc(), arg.argv(), "1.0.0", out, err);
 
         REQUIRE(add_result.has_value());
@@ -248,7 +258,8 @@ TEST_CASE("end-to-end: archive CLI") {
 
     SUBCASE("add: --tags=value inline form; verbose absent defaults to false") {
         Argv arg{{"prog", "add", "readme.md", "--tags=docs,api"}};
-        std::ostringstream out, err;
+        std::ostringstream out;
+        std::ostringstream err;
         cli.run(arg.argc(), arg.argv(), "1.0.0", out, err);
 
         REQUIRE(add_result.has_value());
@@ -259,7 +270,8 @@ TEST_CASE("end-to-end: archive CLI") {
 
     SUBCASE("add: missing required positional writes to err, callback not invoked") {
         Argv arg{{"prog", "add", "--tags", "work"}};
-        std::ostringstream out, err;
+        std::ostringstream out;
+        std::ostringstream err;
         cli.run(arg.argc(), arg.argv(), "1.0.0", out, err);
 
         CHECK(!add_result.has_value());
@@ -269,7 +281,8 @@ TEST_CASE("end-to-end: archive CLI") {
 
     SUBCASE("search: default limit used when flag absent") {
         Argv arg{{"prog", "search", "hello"}};
-        std::ostringstream out, err;
+        std::ostringstream out;
+        std::ostringstream err;
         cli.run(arg.argc(), arg.argv(), "1.0.0", out, err);
 
         REQUIRE(search_result.has_value());
@@ -279,7 +292,8 @@ TEST_CASE("end-to-end: archive CLI") {
 
     SUBCASE("search: explicit -n overrides default") {
         Argv arg{{"prog", "search", "hello", "-n", "3"}};
-        std::ostringstream out, err;
+        std::ostringstream out;
+        std::ostringstream err;
         cli.run(arg.argc(), arg.argv(), "1.0.0", out, err);
 
         REQUIRE(search_result.has_value());
@@ -289,7 +303,8 @@ TEST_CASE("end-to-end: archive CLI") {
 
     SUBCASE("copy: variadic sources collected in order") {
         Argv arg{{"prog", "copy", "--dest", "/tmp/bak", "a.txt", "b.txt", "c.txt"}};
-        std::ostringstream out, err;
+        std::ostringstream out;
+        std::ostringstream err;
         cli.run(arg.argc(), arg.argv(), "1.0.0", out, err);
 
         REQUIRE(copy_result.has_value());
@@ -299,7 +314,8 @@ TEST_CASE("end-to-end: archive CLI") {
 
     SUBCASE("copy: zero sources is accepted") {
         Argv arg{{"prog", "copy", "-d", "/tmp/bak"}};
-        std::ostringstream out, err;
+        std::ostringstream out;
+        std::ostringstream err;
         cli.run(arg.argc(), arg.argv(), "1.0.0", out, err);
 
         REQUIRE(copy_result.has_value());
@@ -309,7 +325,8 @@ TEST_CASE("end-to-end: archive CLI") {
 
     SUBCASE("group help lists all subcommands") {
         Argv arg{{"prog", "help"}};
-        std::ostringstream out, err;
+        std::ostringstream out;
+        std::ostringstream err;
         cli.run(arg.argc(), arg.argv(), "1.0.0", out, err);
 
         CHECK(out.str().find("add") != std::string::npos);
@@ -320,7 +337,8 @@ TEST_CASE("end-to-end: archive CLI") {
 
     SUBCASE("group version") {
         Argv arg{{"prog", "version"}};
-        std::ostringstream out, err;
+        std::ostringstream out;
+        std::ostringstream err;
         cli.run(arg.argc(), arg.argv(), "1.0.0", out, err);
 
         CHECK(out.str() == "1.0.0\n");
@@ -329,7 +347,8 @@ TEST_CASE("end-to-end: archive CLI") {
 
     SUBCASE("nested add --help goes to out, callback not invoked") {
         Argv arg{{"prog", "add", "--help"}};
-        std::ostringstream out, err;
+        std::ostringstream out;
+        std::ostringstream err;
         cli.run(arg.argc(), arg.argv(), "1.0.0", out, err);
 
         CHECK(!out.str().empty());
@@ -341,7 +360,8 @@ TEST_CASE("end-to-end: archive CLI") {
 
     SUBCASE("nested search --version goes to out") {
         Argv arg{{"prog", "search", "--version"}};
-        std::ostringstream out, err;
+        std::ostringstream out;
+        std::ostringstream err;
         cli.run(arg.argc(), arg.argv(), "1.0.0", out, err);
 
         CHECK(out.str() == "1.0.0\n");
@@ -350,7 +370,8 @@ TEST_CASE("end-to-end: archive CLI") {
 
     SUBCASE("unknown subcommand error goes to err") {
         Argv arg{{"prog", "delete", "notes.txt"}};
-        std::ostringstream out, err;
+        std::ostringstream out;
+        std::ostringstream err;
         cli.run(arg.argc(), arg.argv(), "1.0.0", out, err);
 
         CHECK(out.str().empty());
@@ -387,7 +408,7 @@ TEST_CASE("basic: ambiguous anonymous arguments throw") {
                        [](int, int) {}),
         FlagError);
     CHECK_THROWS_AS(Command::basic("s", Flag<int>::anon_variadic("a") & Flag<int>::anon("b"),
-                                   [](std::vector<int>, int) {}),
+                                   [](const std::vector<int> &, int) {}),
                     FlagError);
 }
 

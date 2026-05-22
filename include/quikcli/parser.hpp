@@ -26,7 +26,7 @@ struct ParseResult {
 
 class Parser {
   public:
-    explicit Parser(std::vector<const FlagSpec *> specs) {
+    explicit Parser(const std::vector<const FlagSpec *> &specs) {
         for (auto *s : specs) {
             // raw value is cleared because FlagSpec can be shared since Param and Command both use
             // shared_ptrs; as long as parsing doesn't run in parallel, this should be okay

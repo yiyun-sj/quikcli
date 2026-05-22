@@ -169,7 +169,6 @@ class Command {
             }
         }
         usage_info(std::format("unknown subcommand {}", subcommand), ctx, false);
-        return;
     }
 
     static void usage_info(std::string_view error_msg, RunContext &ctx, bool is_basic) {

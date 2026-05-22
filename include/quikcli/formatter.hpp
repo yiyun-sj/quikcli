@@ -15,9 +15,10 @@ namespace detail {
 class Help {
   public:
     static std::string format_basic(std::string_view program_path, std::string_view summary,
-                                    std::vector<std::string_view> subcommand_path,
+                                    const std::vector<std::string_view> &subcommand_path,
                                     const std::vector<const FlagSpec *> &specs) {
-        std::vector<const FlagSpec *> flag_specs, anon_specs;
+        std::vector<const FlagSpec *> flag_specs;
+        std::vector<const FlagSpec *> anon_specs;
         for (auto *s : specs) {
             if (is_anon_kind(s->kind))
                 anon_specs.push_back(s);
@@ -58,7 +59,7 @@ class Help {
 
     static std::string
     format_group(std::string_view program_path, std::string_view summary,
-                 std::vector<std::string_view> subcommand_path,
+                 const std::vector<std::string_view> &subcommand_path,
                  const std::vector<std::pair<std::string, std::string>> &subcommand_summaries) {
         std::string out;
 
@@ -87,6 +88,7 @@ class Help {
 
     static std::string args_table(const std::vector<const FlagSpec *> &specs) {
         std::vector<Row> rows;
+        rows.reserve(specs.size());
         for (auto *s : specs)
             rows.push_back({build_arg_inputs(*s), build_annotated_doc(*s)});
         return render_rows(rows);
@@ -94,6 +96,7 @@ class Help {
 
     static std::string flags_table(const std::vector<const FlagSpec *> &specs) {
         std::vector<Row> rows;
+        rows.reserve(specs.size());
         for (auto *s : specs)
             rows.push_back({build_flag_inputs(*s), build_annotated_doc(*s)});
         rows.push_back({"[-V, --version]", "print the version and exit"});
@@ -104,6 +107,7 @@ class Help {
     static std::string subcommands_table(
         const std::vector<std::pair<std::string, std::string>> &subcommand_summaries) {
         std::vector<Row> rows;
+        rows.reserve(subcommand_summaries.size());
         for (const auto &s : subcommand_summaries)
             rows.push_back({s.first, s.second});
         rows.push_back({"version", "print version information"});
