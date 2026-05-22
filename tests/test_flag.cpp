@@ -149,10 +149,55 @@ TEST_CASE("extract parsed value from anon_optional_with_default flag") {
 TEST_CASE("extract parsed value from anon_variadic flag") {
     auto f = quikcli::Flag<int>::anon_variadic("name");
     CHECK(f.extract() == std::vector<int>{});
-    f.spec().raw_values.push_back("1");
+    f.spec().raw_values.emplace_back("1");
     CHECK(f.extract() == std::vector<int>{1});
-    f.spec().raw_values.push_back("2");
-    f.spec().raw_values.push_back("3");
-    f.spec().raw_values.push_back("4");
+    f.spec().raw_values.emplace_back("2");
+    f.spec().raw_values.emplace_back("3");
+    f.spec().raw_values.emplace_back("4");
     CHECK(f.extract() == std::vector<int>{1, 2, 3, 4});
+}
+
+enum class Color { RED, GREEN, BLUE };
+
+template <> struct quikcli::ArgType<Color> {
+    static constexpr std::string_view type_str = "COLOR";
+    static Color parse(std::string_view sv) {
+        if (sv == "RED")
+            return Color::RED;
+        if (sv == "GREEN")
+            return Color::GREEN;
+        if (sv == "BLUE")
+            return Color::BLUE;
+        throw ParseError(std::format("color arguments expects RED, GREEN, or BLUE, got {}", sv));
+    };
+};
+
+template <> struct std::formatter<Color> {
+    static constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+
+    static auto format(Color c, format_context &ctx) {
+        std::string_view name = "Unknown";
+        switch (c) {
+        case Color::RED:
+            name = "RED";
+            break;
+        case Color::GREEN:
+            name = "GREEN";
+            break;
+        case Color::BLUE:
+            name = "BLUE";
+            break;
+        }
+        return std::format_to(ctx.out(), "{}", name);
+    }
+};
+
+TEST_CASE("custom argtype flag") {
+    auto f = quikcli::Flag<Color>::optional_with_default("color", Color::RED).doc("doc").alias('n');
+    CHECK(f.spec().kind == quikcli::FlagKind::OptionalWithDefault);
+    CHECK(f.spec().long_name == "color");
+    CHECK(f.spec().doc_str == "doc");
+    CHECK(f.spec().short_alias == 'n');
+    CHECK(f.spec().default_str == "RED");
+    CHECK(f.default_value().value() == Color::RED);
 }
