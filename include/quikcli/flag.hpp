@@ -14,7 +14,7 @@
 namespace quikcli {
 
 struct FlagError : std::invalid_argument {
-    explicit FlagError(std::string msg) : std::invalid_argument(std::move(msg)) {}
+    explicit FlagError(const std::string &msg) : std::invalid_argument(msg) {}
 };
 
 namespace detail {
@@ -75,7 +75,7 @@ struct FlagSpec {
 template <typename T, typename ExtractT = T> class Flag {
   public:
     static Flag<T> required(std::string name)
-        requires detail::Roundtrippable<T>
+        requires detail::ArgTypeable<T>
     {
         detail::validate_flag_name(name);
         FlagSpec s;
@@ -86,7 +86,7 @@ template <typename T, typename ExtractT = T> class Flag {
     }
 
     static Flag<T, std::optional<T>> optional(std::string name)
-        requires detail::Roundtrippable<T>
+        requires detail::ArgTypeable<T>
     {
         detail::validate_flag_name(name);
         FlagSpec s;
@@ -97,7 +97,7 @@ template <typename T, typename ExtractT = T> class Flag {
     }
 
     static Flag<T> optional_with_default(std::string name, T default_value)
-        requires detail::Roundtrippable<T>
+        requires detail::ArgTypeable<T>
     {
         detail::validate_flag_name(name);
         FlagSpec s;
@@ -110,7 +110,7 @@ template <typename T, typename ExtractT = T> class Flag {
         return f;
     }
 
-    static Flag<T> no_arg(std::string name)
+    static Flag<bool> no_arg(std::string name)
         requires std::same_as<T, bool>
     {
         detail::validate_flag_name(name);
@@ -118,11 +118,11 @@ template <typename T, typename ExtractT = T> class Flag {
         s.long_name = std::move(name);
         s.type_hint = ArgType<T>::type_str;
         s.kind = FlagKind::NoArg;
-        return Flag<T>(std::move(s));
+        return Flag<bool>(std::move(s));
     }
 
     static Flag<T, std::vector<T>> comma_delimited(std::string name)
-        requires detail::Roundtrippable<T>
+        requires detail::ArgTypeable<T>
     {
         detail::validate_flag_name(name);
         FlagSpec s;
@@ -133,7 +133,7 @@ template <typename T, typename ExtractT = T> class Flag {
     }
 
     static Flag<T> anon(std::string name)
-        requires detail::Roundtrippable<T>
+        requires detail::ArgTypeable<T>
     {
         FlagSpec s;
         s.long_name = std::move(name);
@@ -143,7 +143,7 @@ template <typename T, typename ExtractT = T> class Flag {
     }
 
     static Flag<T, std::optional<T>> anon_optional(std::string name)
-        requires detail::Roundtrippable<T>
+        requires detail::ArgTypeable<T>
     {
         FlagSpec s;
         s.long_name = std::move(name);
@@ -153,7 +153,7 @@ template <typename T, typename ExtractT = T> class Flag {
     }
 
     static Flag<T> anon_optional_with_default(std::string name, T default_value)
-        requires detail::Roundtrippable<T>
+        requires detail::ArgTypeable<T>
     {
         FlagSpec s;
         s.long_name = std::move(name);
@@ -166,7 +166,7 @@ template <typename T, typename ExtractT = T> class Flag {
     }
 
     static Flag<T, std::vector<T>> anon_variadic(std::string name)
-        requires detail::Roundtrippable<T>
+        requires detail::ArgTypeable<T>
     {
         FlagSpec s;
         s.long_name = std::move(name);

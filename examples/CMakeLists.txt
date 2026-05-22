@@ -5,3 +5,4 @@ function(add_quikcli_example name)
 endfunction()
 
 add_quikcli_example(basic)
+add_quikcli_example(features)

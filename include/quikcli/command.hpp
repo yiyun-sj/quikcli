@@ -5,6 +5,7 @@
 #include "parser.hpp"
 
 #include <cassert>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -84,7 +85,7 @@ class Command {
              std::ostream &err = std::cerr) const {
         if (argc < 1)
             throw std::invalid_argument("got argc < 1 but expected argv[0] as executable path");
-        RunContext ctx{argv[0], version, out, err, {}};
+        RunContext ctx{std::filesystem::path(argv[0]).filename().string(), version, out, err, {}};
         run_impl(std::span<char *>(argv + 1, argc - 1), ctx);
     }
 
@@ -110,7 +111,7 @@ class Command {
     }
 
     struct RunContext {
-        std::string_view program_path;
+        std::string program_name;
         std::string_view version;
         std::ostream &out;
         std::ostream &err;
@@ -127,7 +128,7 @@ class Command {
             auto result = parser.parse(args);
 
             if (result.help_requested) {
-                ctx.out << detail::Help::format_basic(ctx.program_path, b.summary,
+                ctx.out << detail::Help::format_basic(ctx.program_name, b.summary,
                                                       ctx.subcommand_path, b.specs);
                 return;
             }
@@ -154,7 +155,7 @@ class Command {
             for (const auto &[name, sub] : g.subcommands) {
                 subcommand_summaries.emplace_back(name, sub->summary());
             }
-            ctx.out << detail::Help::format_group(ctx.program_path, g.summary, ctx.subcommand_path,
+            ctx.out << detail::Help::format_group(ctx.program_name, g.summary, ctx.subcommand_path,
                                                   subcommand_summaries);
             return;
         }
@@ -175,7 +176,7 @@ class Command {
         ctx.err << "Error parsing command line:\n\n  ";
         ctx.err << error_msg << "\n\n";
         ctx.err << "For usage information, run\n\n  ";
-        ctx.err << ctx.program_path;
+        ctx.err << ctx.program_name;
         for (auto sub : ctx.subcommand_path) {
             ctx.err << " " << sub;
         }

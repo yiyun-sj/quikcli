@@ -19,7 +19,7 @@ concept Formattable = requires(T &v, std::format_context ctx) {
 };
 
 template <typename T>
-concept Roundtrippable = requires(std::string_view sv, T val) {
+concept ArgTypeable = requires(std::string_view sv, T val) {
     { ArgType<T>::type_str } -> std::convertible_to<std::string_view>;
     { ArgType<T>::parse(sv) } -> std::same_as<T>;
 } && Formattable<T>;
@@ -34,7 +34,7 @@ concept Integer =
 } // namespace detail
 
 struct ParseError : std::runtime_error {
-    explicit ParseError(std::string msg) : std::runtime_error(std::move(msg)) {}
+    explicit ParseError(const std::string &msg) : std::runtime_error(msg) {}
 };
 
 template <> struct ArgType<std::string> {

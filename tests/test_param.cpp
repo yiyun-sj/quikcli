@@ -4,6 +4,7 @@
 #include <quikcli/flag.hpp>
 #include <quikcli/param.hpp>
 #include <string>
+#include <utility>
 
 using namespace quikcli;
 
@@ -75,7 +76,8 @@ struct Server {
 
 TEST_CASE("map param to custom type with operator|") {
     auto p = Flag<std::string>::required("host") & Flag<int>::required("port");
-    auto server_param = p | [](std::string host, int port) { return Server{host, port}; };
+    auto server_param =
+        p | [](std::string host, int port) { return Server{std::move(host), port}; };
     static_assert(std::is_same_v<decltype(server_param), Param<Server>>);
 
     auto s = server_param.specs();
@@ -93,10 +95,10 @@ struct Config {
 };
 
 TEST_CASE("compose mapped param with additional flag") {
-    auto server_param = (Flag<std::string>::required("host") & Flag<int>::required("port")) |
-                        [](std::string host, int port) { return Server{host, port}; };
-    auto config_param = (server_param & Flag<bool>::no_arg("verbose")) |
-                        [](Server s, bool v) { return Config{s, v}; };
+    auto server_param = Flag<std::string>::required("host") & Flag<int>::required("port") |
+                        [](std::string host, int port) { return Server{std::move(host), port}; };
+    auto config_param = server_param & Flag<bool>::no_arg("verbose") |
+                        [](Server s, bool v) { return Config{std::move(s), v}; };
     static_assert(std::is_same_v<decltype(config_param), Param<Config>>);
 
     auto s = config_param.specs();

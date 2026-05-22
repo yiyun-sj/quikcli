@@ -52,10 +52,10 @@ template <typename T> class Param {
         return *this & Param<U>(std::move(rhs));
     }
 
-    template <typename F> auto operator|(F f) const {
-        using U =
-            decltype(std::apply(std::declval<const F &>(), std::declval<detail::as_tuple_t<T>>()));
-        return Param<U>(specs_, [inner = extract_, f_ = std::move(f)]() {
+    template <typename F> auto operator|(F &&f) const {
+        using U = decltype(std::apply(std::declval<std::decay_t<F> &>(),
+                                      std::declval<detail::as_tuple_t<T>>()));
+        return Param<U>(specs_, [inner = extract_, f_ = std::forward<F>(f)]() {
             return std::apply(f_, detail::as_tuple(inner()));
         });
     }

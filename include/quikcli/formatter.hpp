@@ -14,7 +14,7 @@ namespace detail {
 
 class Help {
   public:
-    static std::string format_basic(std::string_view program_path, std::string_view summary,
+    static std::string format_basic(std::string_view program_name, std::string_view summary,
                                     const std::vector<std::string_view> &subcommand_path,
                                     const std::vector<const FlagSpec *> &specs) {
         std::vector<const FlagSpec *> flag_specs;
@@ -32,7 +32,7 @@ class Help {
         out += "\n\n";
 
         out += "  ";
-        out += basename_of(program_path);
+        out += program_name;
         for (auto p : subcommand_path) {
             out += " ";
             out += p;
@@ -58,7 +58,7 @@ class Help {
     }
 
     static std::string
-    format_group(std::string_view program_path, std::string_view summary,
+    format_group(std::string_view program_name, std::string_view summary,
                  const std::vector<std::string_view> &subcommand_path,
                  const std::vector<std::pair<std::string, std::string>> &subcommand_summaries) {
         std::string out;
@@ -67,7 +67,7 @@ class Help {
         out += "\n\n";
 
         out += "  ";
-        out += basename_of(program_path);
+        out += program_name;
         for (auto p : subcommand_path) {
             out += " ";
             out += p;
@@ -111,7 +111,7 @@ class Help {
         for (const auto &s : subcommand_summaries)
             rows.push_back({s.first, s.second});
         rows.push_back({"version", "print version information"});
-        rows.push_back({"help", "explain a given subcommand"});
+        rows.push_back({"help", "print this help text"});
         return render_rows(rows);
     }
 
@@ -202,11 +202,6 @@ class Help {
         case FlagKind::CommaDelimited:
             return "";
         }
-    }
-
-    static std::string basename_of(std::string_view path) {
-        auto pos = path.rfind('/');
-        return std::string(pos != std::string_view::npos ? path.substr(pos + 1) : path);
     }
 };
 

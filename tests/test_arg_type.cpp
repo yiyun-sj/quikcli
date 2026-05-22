@@ -39,24 +39,24 @@ TEST_CASE("float argtype") {
     CHECK_THROWS_AS(quikcli::ArgType<float>::parse("not floating point"), quikcli::ParseError);
 }
 
-enum class Color { RED, GREEN, BLUE };
+enum class Color { Red, Green, Blue };
 
 template <> struct quikcli::ArgType<Color> {
     static constexpr std::string_view type_str = "COLOR";
     static Color parse(std::string_view sv) {
-        if (sv == "RED")
-            return Color::RED;
-        if (sv == "GREEN")
-            return Color::GREEN;
-        if (sv == "BLUE")
-            return Color::BLUE;
-        throw ParseError(std::format("color arguments expects RED, GREEN, or BLUE, got {}", sv));
+        if (sv == "red")
+            return Color::Red;
+        if (sv == "green")
+            return Color::Green;
+        if (sv == "blue")
+            return Color::Blue;
+        throw ParseError(std::format("color arguments expects red, green, or blue, got {}", sv));
     };
 };
 
 TEST_CASE("custom argtype") {
-    CHECK(quikcli::ArgType<Color>::parse("RED") == Color::RED);
-    CHECK(quikcli::ArgType<Color>::parse("GREEN") == Color::GREEN);
-    CHECK(quikcli::ArgType<Color>::parse("BLUE") == Color::BLUE);
+    CHECK(quikcli::ArgType<Color>::parse("red") == Color::Red);
+    CHECK(quikcli::ArgType<Color>::parse("green") == Color::Green);
+    CHECK(quikcli::ArgType<Color>::parse("blue") == Color::Blue);
     CHECK_THROWS_AS(quikcli::ArgType<Color>::parse("anything else"), quikcli::ParseError);
 }

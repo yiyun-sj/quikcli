@@ -111,7 +111,7 @@ TEST_CASE("group: 'help' prints group summary and subcommand list to out") {
 
   sub      . sub summary
   version  . print version information
-  help     . explain a given subcommand
+  help     . print this help text
 )");
     CHECK(err.str().empty());
 }
@@ -151,7 +151,7 @@ For usage information, run
 TEST_CASE("group: unknown subcommand writes error to err") {
     auto cmd = Command::group("root summary", {});
 
-    Argv arg{{"prog", "unknown"}};
+    Argv arg{{"./prog", "unknown"}};
     std::ostringstream out;
     std::ostringstream err;
     cmd.run(arg.argc(), arg.argv(), "1.0", out, err);
@@ -172,7 +172,7 @@ TEST_CASE("group: nested usage info prints with subcommand path") {
     auto sub = Command::basic("sub summary", Flag<int>::required("count"), [](int) {});
     auto cmd = Command::group("root summary", {{"sub", std::move(sub)}});
 
-    Argv arg{{"prog", "sub", "--no-such-flag"}};
+    Argv arg{{"/path/to/prog", "sub", "--no-such-flag"}};
     std::ostringstream out;
     std::ostringstream err;
     cmd.run(arg.argc(), arg.argv(), "1.0", out, err);
