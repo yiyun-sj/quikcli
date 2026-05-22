@@ -1,8 +1,9 @@
 #pragma once
+#include "flag.hpp"
 #include "formatter.hpp"
+#include "fwd.hpp"
 #include "param.hpp"
 #include "parser.hpp"
-#include "quikcli/fwd.hpp"
 
 #include <cassert>
 #include <functional>
@@ -11,17 +12,47 @@
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
 namespace quikcli {
 
+class Command;
+
+namespace detail {
+
+inline void validate_basic_spec(const std::vector<const FlagSpec *> &specs) {
+    // Duplicates are allowed for anonymous args, albeit ugly in the help message
+    std::unordered_set<std::string> names{"help", "version"};
+    std::unordered_set<char> aliases{'h', 'V'};
+    // unambiguous anonymous args must be ordered: required -> optional/with-default -> variadic
+    auto prev_anon = FlagKind::Anon;
+    for (auto *s : specs) {
+        if (is_anon_kind(s->kind)) {
+            if (prev_anon == FlagKind::AnonVariadic)
+                throw FlagError("no anonymous argument can follow a variadic one");
+            if (s->kind == FlagKind::Anon && prev_anon != FlagKind::Anon)
+                throw FlagError(
+                    "required anonymous argument must be before optional and variadic ones");
+            prev_anon = s->kind;
+        } else {
+            if (!names.emplace(s->long_name).second)
+                throw FlagError(std::format("duplicate flag name --{}", s->long_name));
+            if (s->short_alias.has_value() && !aliases.emplace(*s->short_alias).second)
+                throw FlagError(std::format("duplicate flag alias -{}", *s->short_alias));
+        }
+    }
+}
+
+} // namespace detail
+
 class Command {
   public:
-    // TODO: check validity of param/subcommands during command construction: e.g. dups
     template <typename T, typename F>
     static Command basic(std::string summary, Param<T> param, F &&f) {
         auto specs = param.specs();
+        detail::validate_basic_spec(specs);
         auto exec = [p = std::move(param), f_ = std::forward<F>(f)]() {
             std::apply(f_, detail::as_tuple(p.extract()));
         };
@@ -36,10 +67,15 @@ class Command {
 
     static Command group(std::string summary,
                          std::vector<std::pair<std::string, Command>> subcommands) {
+        std::unordered_set<std::string> names{"help", "version"};
         Group g;
         g.summary = std::move(summary);
-        for (auto &[name, sub] : subcommands)
+        for (auto &[name, sub] : subcommands) {
+            if (!names.emplace(name).second) {
+                throw FlagError(std::format("duplicate subcommand name {}", name));
+            }
             g.subcommands.emplace_back(std::move(name), std::make_shared<Command>(std::move(sub)));
+        }
         return Command(std::move(g));
     }
 

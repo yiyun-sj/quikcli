@@ -77,20 +77,16 @@ TEST_CASE("empty flag initial values") {
 }
 
 TEST_CASE("invalid names") {
-    CHECK_THROWS_AS(quikcli::detail::validate_flag_name(""), quikcli::FlagNameError);
-    CHECK_THROWS_AS(quikcli::detail::validate_flag_name("-"), quikcli::FlagNameError);
-    CHECK_THROWS_AS(quikcli::detail::validate_flag_name("--name"), quikcli::FlagNameError);
-    CHECK_THROWS_AS(quikcli::detail::validate_flag_name("equal="), quikcli::FlagNameError);
-    CHECK_THROWS_AS(quikcli::detail::validate_flag_name("help"), quikcli::FlagNameError);
-    CHECK_THROWS_AS(quikcli::detail::validate_flag_name("version"), quikcli::FlagNameError);
-    CHECK_THROWS_AS(quikcli::Flag<int>::required("-name"), quikcli::FlagNameError);
+    CHECK_THROWS_AS(quikcli::detail::validate_flag_name(""), quikcli::FlagError);
+    CHECK_THROWS_AS(quikcli::detail::validate_flag_name("-"), quikcli::FlagError);
+    CHECK_THROWS_AS(quikcli::detail::validate_flag_name("--name"), quikcli::FlagError);
+    CHECK_THROWS_AS(quikcli::detail::validate_flag_name("equal="), quikcli::FlagError);
+    CHECK_THROWS_AS(quikcli::Flag<int>::required("-name"), quikcli::FlagError);
 }
 
 TEST_CASE("invalid aliases") {
-    CHECK_THROWS_AS(quikcli::detail::validate_flag_alias('-'), quikcli::FlagNameError);
-    CHECK_THROWS_AS(quikcli::detail::validate_flag_alias('h'), quikcli::FlagNameError);
-    CHECK_THROWS_AS(quikcli::detail::validate_flag_alias('V'), quikcli::FlagNameError);
-    CHECK_THROWS_AS(quikcli::Flag<int>::required("name").alias('-'), quikcli::FlagNameError);
+    CHECK_THROWS_AS(quikcli::detail::validate_flag_alias('-'), quikcli::FlagError);
+    CHECK_THROWS_AS(quikcli::Flag<int>::required("name").alias('-'), quikcli::FlagError);
 }
 
 TEST_CASE("extract parsed value from required flag") {

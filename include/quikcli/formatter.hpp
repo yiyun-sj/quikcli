@@ -128,11 +128,6 @@ class Help {
         return out;
     }
 
-    static bool is_anon_kind(FlagKind k) {
-        return k == FlagKind::Anon || k == FlagKind::AnonOptional ||
-               k == FlagKind::AnonOptionalWithDefault || k == FlagKind::AnonVariadic;
-    }
-
     static std::string build_annotated_doc(const FlagSpec &s) {
         switch (s.kind) {
         case FlagKind::AnonOptionalWithDefault:

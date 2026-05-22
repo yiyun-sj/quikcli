@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+using namespace quikcli;
 
 struct Argv {
     std::vector<std::string> storage;
@@ -20,8 +21,7 @@ struct Argv {
 };
 
 TEST_CASE("basic: parse error for unknown flag writes to err, not out") {
-    auto cmd =
-        quikcli::Command::basic("test command", quikcli::Flag<int>::required("count"), [](int) {});
+    auto cmd = Command::basic("test command", Flag<int>::required("count"), [](int) {});
 
     Argv arg{{"prog", "--no-such-flag"}};
     std::ostringstream out, err;
@@ -40,8 +40,7 @@ For usage information, run
 }
 
 TEST_CASE("basic: --help prints to out") {
-    auto cmd =
-        quikcli::Command::basic("a summary", quikcli::Flag<int>::required("count"), [](int) {});
+    auto cmd = Command::basic("a summary", Flag<int>::required("count"), [](int) {});
 
     Argv arg{{"prog", "--help"}};
     std::ostringstream out, err;
@@ -61,8 +60,7 @@ TEST_CASE("basic: --help prints to out") {
 }
 
 TEST_CASE("basic: -h prints to out") {
-    auto cmd =
-        quikcli::Command::basic("a summary", quikcli::Flag<int>::required("count"), [](int) {});
+    auto cmd = Command::basic("a summary", Flag<int>::required("count"), [](int) {});
 
     Argv arg{{"prog", "-h"}};
     std::ostringstream out, err;
@@ -82,7 +80,7 @@ TEST_CASE("basic: -h prints to out") {
 }
 
 TEST_CASE("basic: --version prints version string to out") {
-    auto cmd = quikcli::Command::basic("test", quikcli::Flag<int>::required("count"), [](int) {});
+    auto cmd = Command::basic("test", Flag<int>::required("count"), [](int) {});
 
     Argv arg{{"prog", "--version"}};
     std::ostringstream out, err;
@@ -93,9 +91,8 @@ TEST_CASE("basic: --version prints version string to out") {
 }
 
 TEST_CASE("group: 'help' prints group summary and subcommand list to out") {
-    auto sub =
-        quikcli::Command::basic("sub summary", quikcli::Flag<int>::required("count"), [](int) {});
-    auto cmd = quikcli::Command::group("root summary", {{"sub", std::move(sub)}});
+    auto sub = Command::basic("sub summary", Flag<int>::required("count"), [](int) {});
+    auto cmd = Command::group("root summary", {{"sub", std::move(sub)}});
 
     Argv arg{{"prog", "help"}};
     std::ostringstream out, err;
@@ -115,7 +112,7 @@ TEST_CASE("group: 'help' prints group summary and subcommand list to out") {
 }
 
 TEST_CASE("group: 'version' prints version string to out") {
-    auto cmd = quikcli::Command::group("root summary", {});
+    auto cmd = Command::group("root summary", {});
 
     Argv arg{{"prog", "version"}};
     std::ostringstream out, err;
@@ -126,7 +123,7 @@ TEST_CASE("group: 'version' prints version string to out") {
 }
 
 TEST_CASE("group: missing subcommand writes error to err") {
-    auto cmd = quikcli::Command::group("root summary", {});
+    auto cmd = Command::group("root summary", {});
 
     Argv arg{{"prog"}};
     std::ostringstream out, err;
@@ -145,7 +142,7 @@ For usage information, run
 }
 
 TEST_CASE("group: unknown subcommand writes error to err") {
-    auto cmd = quikcli::Command::group("root summary", {});
+    auto cmd = Command::group("root summary", {});
 
     Argv arg{{"prog", "unknown"}};
     std::ostringstream out, err;
@@ -164,9 +161,8 @@ For usage information, run
 }
 
 TEST_CASE("group: nested usage info prints with subcommand path") {
-    auto sub =
-        quikcli::Command::basic("sub summary", quikcli::Flag<int>::required("count"), [](int) {});
-    auto cmd = quikcli::Command::group("root summary", {{"sub", std::move(sub)}});
+    auto sub = Command::basic("sub summary", Flag<int>::required("count"), [](int) {});
+    auto cmd = Command::group("root summary", {{"sub", std::move(sub)}});
 
     Argv arg{{"prog", "sub", "--no-such-flag"}};
     std::ostringstream out, err;
@@ -201,7 +197,6 @@ struct CopyResult {
 };
 
 TEST_CASE("end-to-end: archive CLI") {
-    using namespace quikcli;
 
     std::optional<AddResult> add_result;
     std::optional<SearchResult> search_result;
@@ -361,4 +356,53 @@ TEST_CASE("end-to-end: archive CLI") {
         CHECK(out.str().empty());
         CHECK(err.str().find("delete") != std::string::npos);
     }
+}
+
+TEST_CASE("basic: duplicate flags throws") {
+    CHECK_THROWS_AS(Command::basic("s", Flag<int>::required("foo") & Flag<int>::required("foo"),
+                                   [](int, int) {}),
+                    FlagError);
+    CHECK_THROWS_AS(Command::basic("s",
+                                   Flag<int>::required("foo").alias('x') &
+                                       Flag<int>::required("bar").alias('x'),
+                                   [](int, int) {}),
+                    FlagError);
+}
+
+TEST_CASE("basic: help and version overrides throw") {
+    CHECK_THROWS_AS(Command::basic("s", Flag<int>::required("help"), [](int) {}), FlagError);
+    CHECK_THROWS_AS(Command::basic("s", Flag<int>::required("version"), [](int) {}), FlagError);
+    CHECK_THROWS_AS(Command::basic("s", Flag<int>::required("foo").alias('h'), [](int) {}),
+                    FlagError);
+    CHECK_THROWS_AS(Command::basic("s", Flag<int>::required("foo").alias('V'), [](int) {}),
+                    FlagError);
+}
+
+TEST_CASE("basic: ambiguous anonymous arguments throw") {
+    CHECK_THROWS_AS(Command::basic("s", Flag<int>::anon_optional("a") & Flag<int>::anon("b"),
+                                   [](std::optional<int>, int) {}),
+                    FlagError);
+    CHECK_THROWS_AS(
+        Command::basic("s", Flag<int>::anon_optional_with_default("a", 0) & Flag<int>::anon("b"),
+                       [](int, int) {}),
+        FlagError);
+    CHECK_THROWS_AS(Command::basic("s", Flag<int>::anon_variadic("a") & Flag<int>::anon("b"),
+                                   [](std::vector<int>, int) {}),
+                    FlagError);
+}
+
+TEST_CASE("group: duplicate subcommand name throws") {
+    auto sub1 = Command::basic("s1", Flag<int>::required("n"), [](int) {});
+    auto sub2 = Command::basic("s2", Flag<int>::required("n"), [](int) {});
+    CHECK_THROWS_AS(Command::group("root", {{"foo", sub1}, {"foo", sub2}}), FlagError);
+}
+
+TEST_CASE("group: help and version subcommands throw") {
+    CHECK_THROWS_AS(Command::group("root", {{"help", Command::basic("s", Flag<int>::required("n"),
+                                                                    [](int) {})}}),
+                    FlagError);
+    CHECK_THROWS_AS(
+        Command::group("root",
+                       {{"version", Command::basic("s", Flag<int>::required("n"), [](int) {})}}),
+        FlagError);
 }

@@ -12,8 +12,8 @@
 
 namespace quikcli {
 
-struct FlagNameError : std::invalid_argument {
-    explicit FlagNameError(std::string msg) : std::invalid_argument(std::move(msg)) {}
+struct FlagError : std::invalid_argument {
+    explicit FlagError(std::string msg) : std::invalid_argument(std::move(msg)) {}
 };
 
 namespace detail {
@@ -28,24 +28,16 @@ template <typename T> inline constexpr bool is_vector_v = is_vector<T>::value;
 
 inline void validate_flag_name(std::string_view name) {
     if (name.empty())
-        throw FlagNameError("flag name cannot be empty");
+        throw FlagError("flag name cannot be empty");
     if (name.front() == '-')
-        throw FlagNameError("flag name cannot start with a '-'");
+        throw FlagError("flag name cannot start with a '-'");
     if (name.find('=') != std::string_view::npos)
-        throw FlagNameError("flag name cannot contain '='");
-    if (name == "help")
-        throw FlagNameError("flag name \"help\" is reserved");
-    if (name == "version")
-        throw FlagNameError("flag name \"version\" is reserved");
+        throw FlagError("flag name cannot contain '='");
 }
 
 inline void validate_flag_alias(char alias) {
     if (alias == '-')
-        throw FlagNameError("flag alias cannot be '-'");
-    if (alias == 'h')
-        throw FlagNameError("flag alias 'h' is reserved for \"help\"");
-    if (alias == 'V')
-        throw FlagNameError("flag alias 'V' is reserved for \"version\"");
+        throw FlagError("flag alias cannot be '-'");
 }
 
 } // namespace detail
@@ -61,6 +53,11 @@ enum class FlagKind {
     AnonOptionalWithDefault,
     AnonVariadic
 };
+
+inline bool is_anon_kind(FlagKind k) {
+    return k == FlagKind::Anon || k == FlagKind::AnonOptional ||
+           k == FlagKind::AnonOptionalWithDefault || k == FlagKind::AnonVariadic;
+}
 
 struct FlagSpec {
     std::string long_name;
@@ -114,6 +111,7 @@ template <typename T, typename ExtractT = T> class Flag {
     static Flag<T> no_arg(std::string name)
         requires std::same_as<T, bool>
     {
+        detail::validate_flag_name(name);
         FlagSpec s;
         s.long_name = std::move(name);
         s.type_hint = ArgType<T>::type_str;
