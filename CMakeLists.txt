@@ -10,6 +10,7 @@ target_include_directories(quikcli INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 target_compile_features(quikcli INTERFACE cxx_std_20)
+target_compile_options(quikcli INTERFACE -Wswitch-enum -Werror=switch)
 
 option(QUIKCLI_BUILD_TESTS    "Build tests"    OFF)
 option(QUIKCLI_BUILD_EXAMPLES "Build examples" OFF)

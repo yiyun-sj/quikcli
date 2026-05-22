@@ -1,5 +1,4 @@
 #pragma once
-#include "fwd.hpp"
 
 #include <charconv>
 #include <concepts>
@@ -8,6 +7,8 @@
 #include <string_view>
 
 namespace quikcli {
+
+template <typename T> struct ArgType;
 
 namespace detail {
 
@@ -24,17 +25,21 @@ concept Roundtrippable = requires(std::string_view sv, T val) {
 } && Formattable<T>;
 
 template <typename T>
-concept Character =
-    std::same_as<T, char> || std::same_as<T, signed char> || std::same_as<T, unsigned char> ||
-    std::same_as<T, char8_t> || std::same_as<T, char16_t> || std::same_as<T, char32_t> ||
-    std::same_as<T, wchar_t>;
+concept Integer =
+    std::integral<T> &&
+    !(std::same_as<T, bool> || std::same_as<T, char> || std::same_as<T, signed char> ||
+      std::same_as<T, unsigned char> || std::same_as<T, char8_t> || std::same_as<T, char16_t> ||
+      std::same_as<T, char32_t> || std::same_as<T, wchar_t>);
 
 } // namespace detail
+
+struct ParseError : std::runtime_error {
+    explicit ParseError(std::string msg) : std::runtime_error(std::move(msg)) {}
+};
 
 template <> struct ArgType<std::string> {
     static constexpr std::string_view type_str = "STRING";
     static std::string parse(std::string_view sv) { return std::string(sv); };
-    static std::string to_string(std::string val) { return val; };
 };
 
 template <> struct ArgType<bool> {
@@ -49,7 +54,8 @@ template <> struct ArgType<bool> {
 };
 
 template <typename T>
-    requires(detail::Character<T>)
+    requires(std::same_as<T, char> || std::same_as<T, signed char> ||
+             std::same_as<T, unsigned char>)
 struct ArgType<T> {
     static constexpr std::string_view type_str = "CHAR";
     static T parse(std::string_view sv) {
@@ -61,7 +67,7 @@ struct ArgType<T> {
 };
 
 template <typename T>
-    requires(std::integral<T> && !std::same_as<T, bool> && !detail::Character<T>)
+    requires(detail::Integer<T>)
 struct ArgType<T> {
     static constexpr std::string_view type_str = "INT";
     static T parse(std::string_view sv) {

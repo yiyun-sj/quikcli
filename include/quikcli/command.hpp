@@ -1,7 +1,6 @@
 #pragma once
 #include "flag.hpp"
 #include "formatter.hpp"
-#include "fwd.hpp"
 #include "param.hpp"
 #include "parser.hpp"
 
@@ -10,6 +9,7 @@
 #include <iostream>
 #include <memory>
 #include <ostream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_set>
@@ -71,6 +71,7 @@ class Command {
         Group g;
         g.summary = std::move(summary);
         for (auto &[name, sub] : subcommands) {
+            detail::validate_flag_name(name);
             if (!names.emplace(name).second) {
                 throw FlagError(std::format("duplicate subcommand name {}", name));
             }
@@ -81,7 +82,8 @@ class Command {
 
     void run(int argc, char **argv, std::string_view version, std::ostream &out = std::cout,
              std::ostream &err = std::cerr) const {
-        assert(argc >= 1); // argc should always contain program name when entered from cli
+        if (argc < 1)
+            throw std::invalid_argument("got argc < 1 but expected argv[0] as executable path");
         RunContext ctx{argv[0], version, out, err, {}};
         run_impl(std::span<char *>(argv + 1, argc - 1), ctx);
     }
@@ -135,7 +137,7 @@ class Command {
             }
 
             b.run();
-        } catch (ParseError pe) {
+        } catch (const ParseError &pe) {
             usage_info(pe.what(), ctx, true);
         }
     }

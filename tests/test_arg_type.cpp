@@ -17,10 +17,6 @@ TEST_CASE("character argtype") {
     CHECK(quikcli::ArgType<char>::parse("a") == 'a');
     CHECK(quikcli::ArgType<signed char>::parse("a") == 'a');
     CHECK(quikcli::ArgType<unsigned char>::parse("a") == 'a');
-    CHECK(quikcli::ArgType<char8_t>::parse("a") == 'a');
-    CHECK(quikcli::ArgType<char16_t>::parse("a") == 'a');
-    CHECK(quikcli::ArgType<char32_t>::parse("a") == 'a');
-    CHECK(quikcli::ArgType<wchar_t>::parse("a") == 'a');
     CHECK_THROWS_AS(quikcli::ArgType<char>::parse(""), quikcli::ParseError);
     CHECK_THROWS_AS(quikcli::ArgType<char>::parse("not a char"), quikcli::ParseError);
 }

@@ -2,7 +2,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 #include <quikcli/flag.hpp>
-#include <quikcli/fwd.hpp>
 #include <vector>
 
 TEST_CASE("required flag") {

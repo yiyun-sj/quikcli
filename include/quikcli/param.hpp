@@ -53,7 +53,8 @@ template <typename T> class Param {
     }
 
     template <typename F> auto operator|(F f) const {
-        using U = decltype(std::apply(std::declval<F>(), std::declval<detail::as_tuple_t<T>>()));
+        using U =
+            decltype(std::apply(std::declval<const F &>(), std::declval<detail::as_tuple_t<T>>()));
         return Param<U>(specs_, [inner = extract_, f_ = std::move(f)]() {
             return std::apply(f_, detail::as_tuple(inner()));
         });

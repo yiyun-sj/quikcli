@@ -1,12 +1,12 @@
 #pragma once
 #include "flag.hpp"
-#include "fwd.hpp"
 
 #include <cassert>
 #include <format>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace quikcli {
@@ -28,8 +28,8 @@ class Parser {
   public:
     explicit Parser(std::vector<const FlagSpec *> specs) {
         for (auto *s : specs) {
-            // raw value is cleared because FlagSpec can be shared since Param and Command both use shared_ptrs;
-            // as long as parsing doesn't run in parallel, this should be okay
+            // raw value is cleared because FlagSpec can be shared since Param and Command both use
+            // shared_ptrs; as long as parsing doesn't run in parallel, this should be okay
             s->raw_value = std::nullopt;
             s->raw_values.clear();
 
@@ -39,7 +39,10 @@ class Parser {
             if (is_anon) {
                 anon_specs_.push_back(s);
             } else {
-                flag_specs_.push_back(s);
+                name_to_flag_spec_.emplace(s->long_name, s);
+                if (s->short_alias.has_value()) {
+                    alias_to_flag_spec_.emplace(*s->short_alias, s);
+                }
             }
         }
     }
@@ -112,14 +115,14 @@ class Parser {
             if ((tok.kind == TokenKind::LongFlag && tok.text == "help") ||
                 (tok.kind == TokenKind::ShortFlag && tok.text == "h")) {
                 out.help_requested = true;
-                return;
             }
             if ((tok.kind == TokenKind::LongFlag && tok.text == "version") ||
                 (tok.kind == TokenKind::ShortFlag && tok.text == "V")) {
                 out.version_requested = true;
-                return;
             }
         }
+        if (out.help_requested || out.version_requested)
+            return;
 
         std::vector<std::string> positionals;
 
@@ -177,24 +180,24 @@ class Parser {
         }
     }
 
-    // TODO: can implement as a prefix tree - might be good for autocomplete
     const FlagSpec *find_long(std::string_view name) const {
-        for (auto *s : flag_specs_) {
-            if (s->long_name == name)
-                return s;
+        auto it = name_to_flag_spec_.find(std::string(name));
+        if (it != name_to_flag_spec_.end()) {
+            return it->second;
         }
         return nullptr;
     }
 
     const FlagSpec *find_short(char alias) const {
-        for (auto *s : flag_specs_) {
-            if (s->short_alias.has_value() && *s->short_alias == alias)
-                return s;
+        auto it = alias_to_flag_spec_.find(alias);
+        if (it != alias_to_flag_spec_.end()) {
+            return it->second;
         }
         return nullptr;
     }
 
-    std::vector<const FlagSpec *> flag_specs_;
+    std::unordered_map<std::string, const FlagSpec *> name_to_flag_spec_;
+    std::unordered_map<char, const FlagSpec *> alias_to_flag_spec_;
     std::vector<const FlagSpec *> anon_specs_;
 };
 

@@ -29,8 +29,8 @@ TEST_CASE("format basic command no args") {
    -c, --count=INT              . number of things
   [-v, --verbose]               . 
   [    --max=FLOAT]             . maximum value
-  [    --min=FLOAT]             . minimum value(default: 0)
-  [    --variables=STRING] ...  . extra states to process
+  [    --min=FLOAT]             . minimum value (default: 0)
+  [    --variables=STRING,...]  . extra states to process
   [-V, --version]               . print the version and exit
   [-h, --help]                  . print this help text and exit
 )");
@@ -64,7 +64,7 @@ TEST_CASE("format basic command") {
 
   input=STRING     . 
   output=STRING    . file to send result to if provided
-  compression=INT  . compression factor [0, 100](default: 70)
+  compression=INT  . compression factor [0, 100] (default: 70)
   extras=STRING    . extra arguments
 
 === flags ===
@@ -72,8 +72,8 @@ TEST_CASE("format basic command") {
    -c, --count=INT              . number of things
   [-v, --verbose]               . 
   [    --max=FLOAT]             . maximum value
-  [    --min=FLOAT]             . minimum value(default: 0)
-  [    --variables=STRING] ...  . extra states to process
+  [    --min=FLOAT]             . minimum value (default: 0)
+  [    --variables=STRING,...]  . extra states to process
   [-V, --version]               . print the version and exit
   [-h, --help]                  . print this help text and exit
 )");

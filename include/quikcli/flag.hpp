@@ -1,7 +1,8 @@
 #pragma once
 #include "arg_type.hpp"
-#include "fwd.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <concepts>
 #include <optional>
 #include <ranges>
@@ -28,16 +29,17 @@ template <typename T> inline constexpr bool is_vector_v = is_vector<T>::value;
 
 inline void validate_flag_name(std::string_view name) {
     if (name.empty())
-        throw FlagError("flag name cannot be empty");
+        throw FlagError("name cannot be empty");
     if (name.front() == '-')
-        throw FlagError("flag name cannot start with a '-'");
-    if (name.find('=') != std::string_view::npos)
-        throw FlagError("flag name cannot contain '='");
+        throw FlagError("name cannot start with a '-'");
+    if (!std::ranges::all_of(
+            name, [](unsigned char c) { return std::isalnum(c) || c == '-' || c == '_'; }))
+        throw FlagError("name may only contain alphanumeric characters, '-', and '_'");
 }
 
 inline void validate_flag_alias(char alias) {
-    if (alias == '-')
-        throw FlagError("flag alias cannot be '-'");
+    if (!std::isalnum(static_cast<unsigned char>(alias)))
+        throw FlagError("alias must be alphanumeric");
 }
 
 } // namespace detail
@@ -200,12 +202,14 @@ template <typename T, typename ExtractT = T> class Flag {
             throw ParseError("BUG: Optional flag is not a optional<U>");
         case FlagKind::CommaDelimited: {
             if constexpr (detail::is_vector_v<ExtractT>) {
+                ExtractT result;
+                if (!spec_.raw_value.has_value())
+                    return result;
                 auto parts =
                     *spec_.raw_value | std::views::split(',') | std::views::transform([](auto &&r) {
                         return std::string_view(r.begin(), r.end());
                     });
 
-                ExtractT result;
                 for (auto part : parts)
                     result.push_back(ArgType<T>::parse(part));
                 return result;
@@ -220,7 +224,11 @@ template <typename T, typename ExtractT = T> class Flag {
                 return result;
             }
             throw ParseError("BUG: AnonVariadic flag is not vector<U>");
-        default:
+        case FlagKind::NoArg:
+        case FlagKind::Required:
+        case FlagKind::OptionalWithDefault:
+        case FlagKind::AnonOptionalWithDefault:
+        case FlagKind::Anon:
             throw ParseError("BUG: only optional and variadic flags can have T != ExtractT");
         }
     }
@@ -246,9 +254,13 @@ template <typename T, typename ExtractT = T> class Flag {
             return *default_;
         case FlagKind::Anon:
             if (!spec_.raw_value.has_value())
-                throw ParseError(std::format("required anonymous argument missing"));
+                throw ParseError(
+                    std::format("required anonymous argument {} missing", spec_.long_name));
             return ArgType<T>::parse(*spec_.raw_value);
-        default:
+        case FlagKind::Optional:
+        case FlagKind::AnonOptional:
+        case FlagKind::CommaDelimited:
+        case FlagKind::AnonVariadic:
             throw ParseError("BUG: optional and variadic flags must have T != ExtractT");
         }
     }

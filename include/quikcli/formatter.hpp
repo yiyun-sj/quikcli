@@ -132,8 +132,14 @@ class Help {
         switch (s.kind) {
         case FlagKind::AnonOptionalWithDefault:
         case FlagKind::OptionalWithDefault:
-            return s.doc_str + "(default: " + s.default_str + ")";
-        default:
+            return s.doc_str + (s.doc_str.empty() ? "" : " ") + "(default: " + s.default_str + ")";
+        case FlagKind::Anon:
+        case FlagKind::AnonOptional:
+        case FlagKind::AnonVariadic:
+        case FlagKind::Required:
+        case FlagKind::NoArg:
+        case FlagKind::Optional:
+        case FlagKind::CommaDelimited:
             return s.doc_str;
         }
     }
@@ -145,7 +151,11 @@ class Help {
         case FlagKind::AnonOptionalWithDefault:
         case FlagKind::AnonVariadic:
             return s.long_name + "=" + s.type_hint;
-        default:
+        case FlagKind::Required:
+        case FlagKind::NoArg:
+        case FlagKind::Optional:
+        case FlagKind::OptionalWithDefault:
+        case FlagKind::CommaDelimited:
             return "";
         }
     }
@@ -163,8 +173,11 @@ class Help {
         case FlagKind::OptionalWithDefault:
             return "[" + short_flag + long_flag + "=" + s.type_hint + "]";
         case FlagKind::CommaDelimited:
-            return "[" + short_flag + long_flag + "=" + s.type_hint + "] ...";
-        default:
+            return "[" + short_flag + long_flag + "=" + s.type_hint + ",...]";
+        case FlagKind::Anon:
+        case FlagKind::AnonOptional:
+        case FlagKind::AnonOptionalWithDefault:
+        case FlagKind::AnonVariadic:
             return "";
         }
     }
@@ -178,7 +191,11 @@ class Help {
             return "[" + s->long_name + "]";
         case FlagKind::AnonVariadic:
             return "[" + s->long_name + " ...]";
-        default:
+        case FlagKind::Required:
+        case FlagKind::NoArg:
+        case FlagKind::Optional:
+        case FlagKind::OptionalWithDefault:
+        case FlagKind::CommaDelimited:
             return "";
         }
     }
