@@ -107,7 +107,11 @@ class Command {
              std::ostream &err = std::cerr) const {
         if (argc < 1)
             throw std::invalid_argument("got argc < 1 but expected argv[0] as executable path");
-        RunContext ctx{std::filesystem::path(argv[0]).filename().string(), version, out, err, {}};
+        RunContext ctx{.program_name = std::filesystem::path(argv[0]).filename().string(),
+                       .version = version,
+                       .out = out,
+                       .err = err,
+                       .subcommand_path = {}};
         run_impl(std::span<char *>(argv + 1, argc - 1), ctx);
     }
 
@@ -145,7 +149,7 @@ class Command {
     }
 
     static void run_impl(const Basic &b, std::span<char *> args, RunContext &ctx) {
-        detail::Parser parser(b.specs);
+        const detail::Parser parser(b.specs);
         try {
             auto result = parser.parse(args);
 
@@ -188,7 +192,8 @@ class Command {
         for (const auto &[name, sub] : g.subcommands) {
             if (subcommand == name) {
                 ctx.subcommand_path.emplace_back(name);
-                return sub->run_impl({args.begin() + 1, args.end()}, ctx);
+                sub->run_impl({args.begin() + 1, args.end()}, ctx);
+                return;
             }
         }
         usage_info(std::format("unknown subcommand {}", subcommand), ctx, false);

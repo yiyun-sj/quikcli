@@ -12,10 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: "4.2.1"
-
       - name: Run tests
         run: make test
 
@@ -24,11 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install clang-format
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y clang-format
 
       - name: Check formatting
         run: |
@@ -41,23 +32,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: "4.2.1"
-
-      - name: Install clang tools
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y clang clang-tidy
-
       - name: Configure
-        run: |
-          cmake -B build \
-            -DQUIKCLI_BUILD_TESTS=ON \
-            -DQUIKCLI_BUILD_EXAMPLES=ON \
-            -DCMAKE_CXX_COMPILER=clang++
+        run: make configure-all
 
       - name: Run clang-tidy
-        run: |
-          find tests examples -name '*.cpp' \
-            | xargs clang-tidy -p build
+        run: clang-tidy -p build include/quikcli/*.hpp

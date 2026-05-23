@@ -112,7 +112,7 @@ class Help {
         std::vector<Row> rows;
         rows.reserve(specs.size());
         for (auto *s : specs)
-            rows.push_back({build_arg_inputs(*s), build_annotated_doc(*s)});
+            rows.push_back({.inputs = build_arg_inputs(*s), .doc = build_annotated_doc(*s)});
         return render_rows(rows);
     }
 
@@ -120,9 +120,9 @@ class Help {
         std::vector<Row> rows;
         rows.reserve(specs.size());
         for (auto *s : specs)
-            rows.push_back({build_flag_inputs(*s), build_annotated_doc(*s)});
-        rows.push_back({"[-V, --version]", "print the version and exit"});
-        rows.push_back({"[-h, --help]", "print this help text and exit"});
+            rows.push_back({.inputs = build_flag_inputs(*s), .doc = build_annotated_doc(*s)});
+        rows.push_back({.inputs = "[-V, --version]", .doc = "print the version and exit"});
+        rows.push_back({.inputs = "[-h, --help]", .doc = "print this help text and exit"});
         return render_rows(rows);
     }
 
@@ -131,23 +131,23 @@ class Help {
         std::vector<Row> rows;
         rows.reserve(subcommand_summaries.size());
         for (const auto &s : subcommand_summaries)
-            rows.push_back({s.first, s.second});
-        rows.push_back({"version", "print version information"});
-        rows.push_back({"help", "print this help text"});
+            rows.push_back({.inputs = s.first, .doc = s.second});
+        rows.push_back({.inputs = "version", .doc = "print version information"});
+        rows.push_back({.inputs = "help", .doc = "print this help text"});
         return render_rows(rows);
     }
 
     static std::string render_rows(const std::vector<Row> &rows) {
         int max_left = 0;
         for (const auto &r : rows)
-            max_left = std::max(max_left, (int)r.inputs.size());
+            max_left = std::max(max_left, static_cast<int>(r.inputs.size()));
 
         constexpr int tab = 2;
         std::string out;
         for (const auto &r : rows) {
             out += std::string(tab, ' ');
             out += r.inputs;
-            out += std::string(max_left - (int)r.inputs.size() + tab, ' ');
+            out += std::string(max_left - static_cast<int>(r.inputs.size()) + tab, ' ');
             out += ". " + r.doc;
             out += "\n";
         }
@@ -187,8 +187,8 @@ class Help {
     }
 
     static std::string build_flag_inputs(const FlagSpec &s) {
-        std::string long_flag = "--" + s.long_name;
-        std::string short_flag =
+        const std::string long_flag = "--" + s.long_name;
+        const std::string short_flag =
             s.short_alias.has_value() ? "-" + std::string{*s.short_alias} + ", " : "    ";
         switch (s.kind) {
         case FlagKind::Required:

@@ -55,9 +55,9 @@ class Parser {
             s->raw_value = std::nullopt;
             s->raw_values.clear();
 
-            bool is_anon = s->kind == FlagKind::Anon || s->kind == FlagKind::AnonOptional ||
-                           s->kind == FlagKind::AnonOptionalWithDefault ||
-                           s->kind == FlagKind::AnonVariadic;
+            const bool is_anon = s->kind == FlagKind::Anon || s->kind == FlagKind::AnonOptional ||
+                                 s->kind == FlagKind::AnonOptionalWithDefault ||
+                                 s->kind == FlagKind::AnonVariadic;
             if (is_anon) {
                 anon_specs_.push_back(s);
             } else {
@@ -81,10 +81,10 @@ class Parser {
         std::vector<Token> tokens;
         bool past_double_dash = false;
 
-        for (std::string_view arg : args) {
+        for (const std::string_view arg : args) {
 
             if (past_double_dash) {
-                tokens.push_back({TokenKind::ValueOrPositional, std::string(arg)});
+                tokens.push_back({.kind = TokenKind::ValueOrPositional, .text = std::string(arg)});
                 continue;
             }
 
@@ -97,11 +97,12 @@ class Parser {
                 auto rest = arg.substr(2);
                 auto eq = rest.find('=');
                 if (eq != std::string_view::npos) {
-                    tokens.push_back({TokenKind::LongFlag, std::string(rest.substr(0, eq))});
                     tokens.push_back(
-                        {TokenKind::ValueOrPositional, std::string(rest.substr(eq + 1))});
+                        {.kind = TokenKind::LongFlag, .text = std::string(rest.substr(0, eq))});
+                    tokens.push_back({.kind = TokenKind::ValueOrPositional,
+                                      .text = std::string(rest.substr(eq + 1))});
                 } else {
-                    tokens.push_back({TokenKind::LongFlag, std::string(rest)});
+                    tokens.push_back({.kind = TokenKind::LongFlag, .text = std::string(rest)});
                 }
                 continue;
             }
@@ -109,24 +110,24 @@ class Parser {
             if (arg.size() >= 2 && arg[0] == '-') {
                 auto chars = arg.substr(1);
                 for (std::size_t j = 0; j < chars.size(); ++j) {
-                    char c = chars[j];
+                    const char c = chars[j];
                     const FlagSpec *spec = find_short(c);
-                    bool is_last = (j == chars.size() - 1);
-                    bool is_no_arg = (spec == nullptr || spec->kind == FlagKind::NoArg);
+                    const bool is_last = (j == chars.size() - 1);
+                    const bool is_no_arg = (spec == nullptr || spec->kind == FlagKind::NoArg);
 
                     if (is_no_arg || is_last) {
-                        tokens.push_back({TokenKind::ShortFlag, std::string(1, c)});
+                        tokens.push_back({.kind = TokenKind::ShortFlag, .text = std::string(1, c)});
                     } else {
-                        tokens.push_back({TokenKind::ShortFlag, std::string(1, c)});
-                        tokens.push_back(
-                            {TokenKind::ValueOrPositional, std::string(chars.substr(j + 1))});
+                        tokens.push_back({.kind = TokenKind::ShortFlag, .text = std::string(1, c)});
+                        tokens.push_back({.kind = TokenKind::ValueOrPositional,
+                                          .text = std::string(chars.substr(j + 1))});
                         break;
                     }
                 }
                 continue;
             }
 
-            tokens.push_back({TokenKind::ValueOrPositional, std::string(arg)});
+            tokens.push_back({.kind = TokenKind::ValueOrPositional, .text = std::string(arg)});
         }
 
         return tokens;
