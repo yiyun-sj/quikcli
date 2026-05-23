@@ -44,6 +44,7 @@ Checks: '*,
          -misc-include-cleaner,
          -misc-multiple-inheritance,
          -misc-non-private-member-variables-in-classes,
+         -misc-no-recursion,
          -misc-use-anonymous-namespace,
          -misc-use-internal-linkage,
          -modernize-avoid-c-arrays,
@@ -78,5 +79,3 @@ Checks: '*,
          -readability-use-std-min-max'
 
 WarningsAsErrors: '*'
-
-HeaderFilterRegex: '.*h$'
